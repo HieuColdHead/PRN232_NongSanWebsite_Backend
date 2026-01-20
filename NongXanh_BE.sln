@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36705.20 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NongXanhController", "NongXanhController\NongXanhController.csproj", "{22992E43-D16D-437C-A7BD-3A4F8B51EB14}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BLL", "BLL\BLL.csproj", "{635A0993-0CA3-40E7-AA1A-A4E3B34C3CE2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAL", "DAL\DAL.csproj", "{AFF42539-09CD-43AB-8F53-6AE8035FB62C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{22992E43-D16D-437C-A7BD-3A4F8B51EB14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22992E43-D16D-437C-A7BD-3A4F8B51EB14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22992E43-D16D-437C-A7BD-3A4F8B51EB14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22992E43-D16D-437C-A7BD-3A4F8B51EB14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{635A0993-0CA3-40E7-AA1A-A4E3B34C3CE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{635A0993-0CA3-40E7-AA1A-A4E3B34C3CE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{635A0993-0CA3-40E7-AA1A-A4E3B34C3CE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{635A0993-0CA3-40E7-AA1A-A4E3B34C3CE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFF42539-09CD-43AB-8F53-6AE8035FB62C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFF42539-09CD-43AB-8F53-6AE8035FB62C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFF42539-09CD-43AB-8F53-6AE8035FB62C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFF42539-09CD-43AB-8F53-6AE8035FB62C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E9B7ADB7-E886-4EAA-834E-980B31664697}
+	EndGlobalSection
+EndGlobal
