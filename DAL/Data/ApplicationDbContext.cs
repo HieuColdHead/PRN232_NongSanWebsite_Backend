@@ -16,25 +16,38 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Cấu hình User entity
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasIndex(e => e.Username)
-                .IsUnique()
-                .HasDatabaseName("IX_Users_Username");
-
             entity.HasIndex(e => e.Email)
                 .IsUnique()
                 .HasDatabaseName("IX_Users_Email");
+
+            entity.HasIndex(e => e.FirebaseUid)
+                .IsUnique()
+                .HasDatabaseName("IX_Users_FirebaseUid");
+
+            entity.Property(e => e.FirebaseUid)
+                .IsRequired()
+                .HasMaxLength(128);
+
+            entity.Property(e => e.Email)
+                .HasMaxLength(255);
+
+            entity.Property(e => e.PhoneNumber)
+                .HasMaxLength(20);
+
+            entity.Property(e => e.DisplayName)
+                .HasMaxLength(150);
+
+            entity.Property(e => e.Provider)
+                .IsRequired()
+                .HasMaxLength(50);
 
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd();
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-            entity.Property(e => e.UpdatedAt)
-                .IsRequired(false);
         });
     }
 }
