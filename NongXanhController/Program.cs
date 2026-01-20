@@ -5,6 +5,8 @@ using System.Text;
 using BLL.Services;
 using BLL.Services.Interfaces;
 using DAL.Data;
+using DAL.Repositories;
+using DAL.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -39,6 +41,7 @@ namespace NongXanhController
             builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddHttpClient();
 
             var jwtKey = builder.Configuration["Jwt:Key"];

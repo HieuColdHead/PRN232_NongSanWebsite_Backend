@@ -1,27 +1,26 @@
 using BLL.DTOs;
 using BLL.Services.Interfaces;
-using DAL.Data;
 using DAL.Entity;
+using DAL.Repositories.Interfaces;
 using FirebaseAdmin.Auth;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace BLL.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IUserRepository _userRepository;
     private readonly IFirebaseAuthService _firebaseAuthService;
     private readonly ITokenService _tokenService;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
-        ApplicationDbContext dbContext,
+        IUserRepository userRepository,
         IFirebaseAuthService firebaseAuthService,
         ITokenService tokenService,
         ILogger<AuthService> logger)
     {
-        _dbContext = dbContext;
+        _userRepository = userRepository;
         _firebaseAuthService = firebaseAuthService;
         _tokenService = tokenService;
         _logger = logger;
@@ -44,7 +43,7 @@ public class AuthService : IAuthService
         var displayName = ExtractClaimValue(claims, "name");
         var provider = ResolveSignInProvider(claims);
 
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.FirebaseUid == uid);
+        var user = await _userRepository.GetByFirebaseUidAsync(uid);
         if (user == null)
         {
             user = new User
@@ -59,7 +58,7 @@ public class AuthService : IAuthService
                 LastLoginAt = DateTime.UtcNow
             };
 
-            _dbContext.Users.Add(user);
+                await _userRepository.AddAsync(user);
         }
         else
         {
@@ -93,11 +92,11 @@ public class AuthService : IAuthService
 
             if (isDirty)
             {
-                _dbContext.Users.Update(user);
+                await _userRepository.UpdateAsync(user);
             }
         }
 
-        await _dbContext.SaveChangesAsync();
+        await _userRepository.SaveChangesAsync();
 
         var accessToken = _tokenService.GenerateToken(user);
 
@@ -131,7 +130,7 @@ public class AuthService : IAuthService
         }
 
         // Nếu local đã có email thì báo luôn (tránh tạo Firebase rồi fail)
-        var localExists = await _dbContext.Users.AnyAsync(u => u.Email == request.Email);
+        var localExists = await _userRepository.EmailExistsAsync(request.Email);
         if (localExists)
         {
             throw new InvalidOperationException("Email đã tồn tại trên hệ thống.");
@@ -158,8 +157,8 @@ public class AuthService : IAuthService
 
         try
         {
-            _dbContext.Users.Add(user);
-            await _dbContext.SaveChangesAsync();
+            await _userRepository.AddAsync(user);
+            await _userRepository.SaveChangesAsync();
         }
         catch (Exception ex)
         {
