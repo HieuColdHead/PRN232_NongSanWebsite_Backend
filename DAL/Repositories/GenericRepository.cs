@@ -18,31 +18,19 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
 
     public async Task<IEnumerable<T>> GetAllAsync()
     {
+        IQueryable<T> query = _dbSet;
+
+        // Include ProductImages if T is Product
+        if (typeof(T) == typeof(DAL.Entity.Product))
+        {
+            query = query.Include("ProductImages");
+        }
+
+        var all = await query.ToListAsync();
+        
         // Filter out deleted items if the entity has an IsDeleted property
         if (typeof(T).GetProperty("IsDeleted") != null)
         {
-            // We need to build a dynamic expression or cast to an interface if we had one.
-            // Since we didn't introduce an interface, we can use EF Core's global query filters 
-            // or just manually filter here using dynamic LINQ or reflection, but reflection in LINQ to Entities is tricky.
-            // A better approach without an interface is to check if the property exists and filter in memory (not ideal for large datasets)
-            // or assume the caller handles it.
-            // However, the prompt asked to change "api delete to set it to true".
-            // Let's try to filter here if possible, or just return all and let the caller filter.
-            // But usually "GetAll" implies non-deleted items.
-            
-            // Let's use a simple check.
-            // Note: The most robust way is Global Query Filters in DbContext, but I will modify this method to filter if possible.
-            // Since I cannot easily use reflection in the query, I will fetch all and filter in memory for now, 
-            // OR better, I will rely on the fact that I'm modifying the DeleteAsync method.
-            // If the user wants GetAll to ONLY return non-deleted, I should probably use Global Query Filters in DbContext.
-            // But the request was "change api delete to set it to true". It didn't explicitly say "hide deleted items in GetAll", 
-            // though that is implied by "soft delete".
-            
-            // Let's try to use dynamic LINQ or just simple reflection for the "Delete" part first.
-            // For GetAll, I will leave it as is unless requested, or I can try to cast to dynamic.
-            
-            // Actually, let's try to filter.
-            var all = await _dbSet.ToListAsync();
             return all.Where(x => 
             {
                 var prop = typeof(T).GetProperty("IsDeleted");
@@ -54,12 +42,45 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
             });
         }
         
-        return await _dbSet.ToListAsync();
+        return all;
     }
 
     public async Task<T?> GetByIdAsync(object id)
     {
-        var entity = await _dbSet.FindAsync(id);
+        T? entity;
+        
+        if (typeof(T) == typeof(DAL.Entity.Product))
+        {
+             // For Product, we need to include images. FindAsync doesn't support Include directly easily without casting.
+             // So we use FirstOrDefaultAsync.
+             // Assuming the primary key is "ProductId" (int) for Product.
+             // But GetByIdAsync takes object id.
+             // We can try to build a query.
+             
+             // A generic way to find by key with Include is tricky.
+             // Let's try to just use FindAsync first, and if it's a Product, we might need to load related data explicitly or use a different query.
+             // However, FindAsync is efficient.
+             
+             // Better approach: Check if it is Product, then use query.
+             var query = _dbSet.AsQueryable();
+             query = query.Include("ProductImages");
+             
+             // We need to find by ID. Since we don't know the key name easily without metadata...
+             // But we know for Product it is ProductId.
+             if (id is int productId)
+             {
+                 entity = await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "ProductId") == productId);
+             }
+             else
+             {
+                 entity = await _dbSet.FindAsync(id);
+             }
+        }
+        else
+        {
+            entity = await _dbSet.FindAsync(id);
+        }
+
         if (entity != null)
         {
              var prop = typeof(T).GetProperty("IsDeleted");
@@ -108,9 +129,14 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
 
     public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
     {
-        // This might return deleted items if the predicate doesn't filter them.
-        // Ideally we should combine predicates.
-        var results = await _dbSet.Where(predicate).ToListAsync();
+        IQueryable<T> query = _dbSet;
+        
+        if (typeof(T) == typeof(DAL.Entity.Product))
+        {
+            query = query.Include("ProductImages");
+        }
+
+        var results = await query.Where(predicate).ToListAsync();
         
         return results.Where(x => 
         {

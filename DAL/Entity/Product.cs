@@ -56,4 +56,6 @@ public class Product
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; } = false;
+
+    public ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
 }
