@@ -11,6 +11,10 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; }
+    public DbSet<Provider> Providers { get; set; }
+    public DbSet<Category> Categories { get; set; }
+    public DbSet<Product> Products { get; set; }
+    public DbSet<ProductVariant> ProductVariants { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,6 +52,21 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        modelBuilder.Entity<Provider>(entity =>
+        {
+            entity.Property(e => e.RatingAverage).HasColumnType("decimal(3,2)");
+        });
+
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<ProductVariant>(entity =>
+        {
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
         });
     }
 }

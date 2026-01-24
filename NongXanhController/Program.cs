@@ -23,13 +23,35 @@ namespace NongXanhController
 
             if (string.IsNullOrEmpty(firebaseJson))
             {
-                throw new Exception("Firebase credentials not found");
+                // Fallback to local file if environment variable is not set
+                var firebaseFile = Path.Combine(Directory.GetCurrentDirectory(), "firebase.json");
+                if (File.Exists(firebaseFile))
+                {
+                    firebaseJson = File.ReadAllText(firebaseFile);
+                }
+                else
+                {
+                    // If neither exists, we can't initialize Firebase properly.
+                    // Depending on your needs, you might throw or just log a warning.
+                    // throw new Exception("Firebase credentials not found (env var or firebase.json)");
+                    Console.WriteLine("Warning: Firebase credentials not found.");
+                }
             }
 
-            FirebaseApp.Create(new AppOptions
+            if (!string.IsNullOrEmpty(firebaseJson))
             {
-                Credential = GoogleCredential.FromJson(firebaseJson)
-            });
+                try
+                {
+                    FirebaseApp.Create(new AppOptions
+                    {
+                        Credential = GoogleCredential.FromJson(firebaseJson)
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error initializing Firebase: {ex.Message}");
+                }
+            }
 
             // Add services to the container.
 
@@ -43,6 +65,7 @@ namespace NongXanhController
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddHttpClient();
 
             var jwtKey = builder.Configuration["Jwt:Key"];
