@@ -1,4 +1,3 @@
-
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using System.Text;
@@ -123,12 +122,17 @@ namespace NongXanhController
 
             var app = builder.Build();
 
-            // Optional: auto apply EF migrations on startup (useful for deploy)
-            if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
+            // Auto apply pending EF migrations on startup
+            using (var scope = app.Services.CreateScope())
             {
-                using var scope = app.Services.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.Migrate();
+                var pendingMigrations = db.Database.GetPendingMigrations();
+                if (pendingMigrations.Any())
+                {
+                    Console.WriteLine($"Áp dụng {pendingMigrations.Count()}  migration(s)...");
+                    db.Database.Migrate();
+                    Console.WriteLine("Đã tự update migrations");
+                }
             }
 
             // Configure the HTTP request pipeline.
