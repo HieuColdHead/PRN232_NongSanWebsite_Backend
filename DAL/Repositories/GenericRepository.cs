@@ -45,28 +45,54 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         return all;
     }
 
+    public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
+    {
+        IQueryable<T> query = _dbSet;
+
+        // Include ProductImages if T is Product
+        if (typeof(T) == typeof(DAL.Entity.Product))
+        {
+            query = query.Include("ProductImages");
+        }
+
+        // Filter out deleted items if the entity has an IsDeleted property
+        // Note: For pagination, we should filter BEFORE paging.
+        // Since we can't easily use reflection in IQueryable expression tree without building it dynamically,
+        // we have a challenge.
+        // However, we can try to build a dynamic expression or just fetch all and page in memory (bad for performance).
+        // A better way is to assume the caller handles filtering or use a base class/interface constraint if possible.
+        // But since we are stuck with reflection for now, let's try to build a lambda.
+        
+        if (typeof(T).GetProperty("IsDeleted") != null)
+        {
+            // x => x.IsDeleted == false
+            var parameter = Expression.Parameter(typeof(T), "x");
+            var property = Expression.Property(parameter, "IsDeleted");
+            var constant = Expression.Constant(false);
+            var equality = Expression.Equal(property, constant);
+            var lambda = Expression.Lambda<Func<T, bool>>(equality, parameter);
+            
+            query = query.Where(lambda);
+        }
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
     public async Task<T?> GetByIdAsync(object id)
     {
         T? entity;
         
         if (typeof(T) == typeof(DAL.Entity.Product))
         {
-             // For Product, we need to include images. FindAsync doesn't support Include directly easily without casting.
-             // So we use FirstOrDefaultAsync.
-             // Assuming the primary key is "ProductId" (int) for Product.
-             // But GetByIdAsync takes object id.
-             // We can try to build a query.
-             
-             // A generic way to find by key with Include is tricky.
-             // Let's try to just use FindAsync first, and if it's a Product, we might need to load related data explicitly or use a different query.
-             // However, FindAsync is efficient.
-             
-             // Better approach: Check if it is Product, then use query.
              var query = _dbSet.AsQueryable();
              query = query.Include("ProductImages");
              
-             // We need to find by ID. Since we don't know the key name easily without metadata...
-             // But we know for Product it is ProductId.
              if (id is int productId)
              {
                  entity = await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "ProductId") == productId);

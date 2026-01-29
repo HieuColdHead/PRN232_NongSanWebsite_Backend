@@ -1,5 +1,5 @@
-﻿using DAL.Entity;
-using DAL.Repositories.Interfaces;
+﻿using BLL.Services.Interfaces;
+using DAL.Entity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
@@ -8,23 +8,23 @@ namespace NongXanhController.Controllers;
 [ApiController]
 public class ProvidersController : ControllerBase
 {
-    private readonly IGenericRepository<Provider> _repository;
+    private readonly IProviderService _service;
 
-    public ProvidersController(IGenericRepository<Provider> repository)
+    public ProvidersController(IProviderService service)
     {
-        _repository = repository;
+        _service = service;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Provider>>> GetProviders()
     {
-        return Ok(await _repository.GetAllAsync());
+        return Ok(await _service.GetAllAsync());
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Provider>> GetProvider(int id)
     {
-        var provider = await _repository.GetByIdAsync(id);
+        var provider = await _service.GetByIdAsync(id);
 
         if (provider == null)
         {
@@ -37,8 +37,7 @@ public class ProvidersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Provider>> PostProvider(Provider provider)
     {
-        await _repository.AddAsync(provider);
-        await _repository.SaveChangesAsync();
+        await _service.AddAsync(provider);
 
         return CreatedAtAction("GetProvider", new { id = provider.ProviderId }, provider);
     }
@@ -51,8 +50,7 @@ public class ProvidersController : ControllerBase
             return BadRequest();
         }
 
-        await _repository.UpdateAsync(provider);
-        await _repository.SaveChangesAsync();
+        await _service.UpdateAsync(provider);
 
         return NoContent();
     }
@@ -60,8 +58,7 @@ public class ProvidersController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProvider(int id)
     {
-        await _repository.DeleteAsync(id);
-        await _repository.SaveChangesAsync();
+        await _service.DeleteAsync(id);
 
         return NoContent();
     }

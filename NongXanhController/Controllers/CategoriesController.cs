@@ -1,5 +1,5 @@
-﻿using DAL.Entity;
-using DAL.Repositories.Interfaces;
+﻿using BLL.Services.Interfaces;
+using DAL.Entity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
@@ -8,23 +8,23 @@ namespace NongXanhController.Controllers;
 [ApiController]
 public class CategoriesController : ControllerBase
 {
-    private readonly IGenericRepository<Category> _repository;
+    private readonly ICategoryService _service;
 
-    public CategoriesController(IGenericRepository<Category> repository)
+    public CategoriesController(ICategoryService service)
     {
-        _repository = repository;
+        _service = service;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
     {
-        return Ok(await _repository.GetAllAsync());
+        return Ok(await _service.GetAllAsync());
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Category>> GetCategory(int id)
     {
-        var category = await _repository.GetByIdAsync(id);
+        var category = await _service.GetByIdAsync(id);
 
         if (category == null)
         {
@@ -37,8 +37,7 @@ public class CategoriesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Category>> PostCategory(Category category)
     {
-        await _repository.AddAsync(category);
-        await _repository.SaveChangesAsync();
+        await _service.AddAsync(category);
 
         return CreatedAtAction("GetCategory", new { id = category.CategoryId }, category);
     }
@@ -51,8 +50,7 @@ public class CategoriesController : ControllerBase
             return BadRequest();
         }
 
-        await _repository.UpdateAsync(category);
-        await _repository.SaveChangesAsync();
+        await _service.UpdateAsync(category);
 
         return NoContent();
     }
@@ -60,8 +58,7 @@ public class CategoriesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
-        await _repository.DeleteAsync(id);
-        await _repository.SaveChangesAsync();
+        await _service.DeleteAsync(id);
 
         return NoContent();
     }

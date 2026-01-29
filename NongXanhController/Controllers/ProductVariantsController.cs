@@ -1,5 +1,5 @@
-﻿using DAL.Entity;
-using DAL.Repositories.Interfaces;
+﻿using BLL.Services.Interfaces;
+using DAL.Entity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
@@ -8,23 +8,23 @@ namespace NongXanhController.Controllers;
 [ApiController]
 public class ProductVariantsController : ControllerBase
 {
-    private readonly IGenericRepository<ProductVariant> _repository;
+    private readonly IProductVariantService _service;
 
-    public ProductVariantsController(IGenericRepository<ProductVariant> repository)
+    public ProductVariantsController(IProductVariantService service)
     {
-        _repository = repository;
+        _service = service;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductVariant>>> GetProductVariants()
     {
-        return Ok(await _repository.GetAllAsync());
+        return Ok(await _service.GetAllAsync());
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductVariant>> GetProductVariant(int id)
     {
-        var productVariant = await _repository.GetByIdAsync(id);
+        var productVariant = await _service.GetByIdAsync(id);
 
         if (productVariant == null)
         {
@@ -37,8 +37,7 @@ public class ProductVariantsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProductVariant>> PostProductVariant(ProductVariant productVariant)
     {
-        await _repository.AddAsync(productVariant);
-        await _repository.SaveChangesAsync();
+        await _service.AddAsync(productVariant);
 
         return CreatedAtAction("GetProductVariant", new { id = productVariant.VariantId }, productVariant);
     }
@@ -51,8 +50,7 @@ public class ProductVariantsController : ControllerBase
             return BadRequest();
         }
 
-        await _repository.UpdateAsync(productVariant);
-        await _repository.SaveChangesAsync();
+        await _service.UpdateAsync(productVariant);
 
         return NoContent();
     }
@@ -60,8 +58,7 @@ public class ProductVariantsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProductVariant(int id)
     {
-        await _repository.DeleteAsync(id);
-        await _repository.SaveChangesAsync();
+        await _service.DeleteAsync(id);
 
         return NoContent();
     }

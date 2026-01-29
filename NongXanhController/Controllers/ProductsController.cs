@@ -1,5 +1,6 @@
-﻿using DAL.Entity;
-using DAL.Repositories.Interfaces;
+﻿using BLL.DTOs;
+using BLL.Services.Interfaces;
+using DAL.Entity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
@@ -8,23 +9,28 @@ namespace NongXanhController.Controllers;
 [ApiController]
 public class ProductsController : ControllerBase
 {
-    private readonly IGenericRepository<Product> _repository;
+    private readonly IProductService _service;
 
-    public ProductsController(IGenericRepository<Product> repository)
+    public ProductsController(IProductService service)
     {
-        _repository = repository;
+        _service = service;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+    public async Task<ActionResult<PagedResult<Product>>> GetProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
-        return Ok(await _repository.GetAllAsync());
+        if (pageNumber < 1 || pageSize < 1)
+        {
+            return BadRequest("Page number and page size must be greater than 0.");
+        }
+
+        return Ok(await _service.GetPagedAsync(pageNumber, pageSize));
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
-        var product = await _repository.GetByIdAsync(id);
+        var product = await _service.GetByIdAsync(id);
 
         if (product == null)
         {
@@ -37,8 +43,7 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Product>> PostProduct(Product product)
     {
-        await _repository.AddAsync(product);
-        await _repository.SaveChangesAsync();
+        await _service.AddAsync(product);
 
         return CreatedAtAction("GetProduct", new { id = product.ProductId }, product);
     }
@@ -51,8 +56,7 @@ public class ProductsController : ControllerBase
             return BadRequest();
         }
 
-        await _repository.UpdateAsync(product);
-        await _repository.SaveChangesAsync();
+        await _service.UpdateAsync(product);
 
         return NoContent();
     }
@@ -60,8 +64,7 @@ public class ProductsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
-        await _repository.DeleteAsync(id);
-        await _repository.SaveChangesAsync();
+        await _service.DeleteAsync(id);
 
         return NoContent();
     }
