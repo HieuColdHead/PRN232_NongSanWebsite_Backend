@@ -1,12 +1,12 @@
-﻿using BLL.Services.Interfaces;
+﻿using BLL.DTOs;
+using BLL.Services.Interfaces;
 using DAL.Entity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
 
 [Route("api/[controller]")]
-[ApiController]
-public class ProductVariantsController : ControllerBase
+public class ProductVariantsController : BaseApiController
 {
     private readonly IProductVariantService _service;
 
@@ -16,50 +16,48 @@ public class ProductVariantsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductVariant>>> GetProductVariants()
+    public async Task<ActionResult<ApiResponse<IEnumerable<ProductVariant>>>> GetProductVariants()
     {
-        return Ok(await _service.GetAllAsync());
+        var variants = await _service.GetAllAsync();
+        return SuccessResponse(variants);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductVariant>> GetProductVariant(int id)
+    public async Task<ActionResult<ApiResponse<ProductVariant>>> GetProductVariant(int id)
     {
         var productVariant = await _service.GetByIdAsync(id);
 
         if (productVariant == null)
         {
-            return NotFound();
+            return ErrorResponse<ProductVariant>("Product variant not found", statusCode: 404);
         }
 
-        return productVariant;
+        return SuccessResponse(productVariant);
     }
 
     [HttpPost]
-    public async Task<ActionResult<ProductVariant>> PostProductVariant(ProductVariant productVariant)
+    public async Task<ActionResult<ApiResponse<ProductVariant>>> PostProductVariant(ProductVariant productVariant)
     {
         await _service.AddAsync(productVariant);
-
-        return CreatedAtAction("GetProductVariant", new { id = productVariant.VariantId }, productVariant);
+        return SuccessResponse(productVariant, "Product variant created successfully");
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutProductVariant(int id, ProductVariant productVariant)
+    public async Task<ActionResult<ApiResponse<object>>> PutProductVariant(int id, ProductVariant productVariant)
     {
         if (id != productVariant.VariantId)
         {
-            return BadRequest();
+            return ErrorResponse<object>("Product variant ID mismatch");
         }
 
         await _service.UpdateAsync(productVariant);
-
-        return NoContent();
+        return SuccessResponse("Product variant updated successfully");
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProductVariant(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteProductVariant(int id)
     {
         await _service.DeleteAsync(id);
-
-        return NoContent();
+        return SuccessResponse("Product variant deleted successfully");
     }
 }

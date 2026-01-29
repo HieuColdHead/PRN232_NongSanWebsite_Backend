@@ -46,18 +46,12 @@ namespace DAL.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
-                    b.Property<int?>("ParentCategoryId")
-                        .HasColumnType("integer")
-                        .HasColumnName("parent_category_id");
-
                     b.Property<string>("Status")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("status");
 
                     b.HasKey("CategoryId");
-
-                    b.HasIndex("ParentCategoryId");
 
                     b.ToTable("Categories");
                 });
@@ -321,15 +315,6 @@ namespace DAL.Migrations
                         .HasDatabaseName("IX_Users_FirebaseUid");
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Category", b =>
-                {
-                    b.HasOne("DAL.Entity.Category", "ParentCategory")
-                        .WithMany()
-                        .HasForeignKey("ParentCategoryId");
-
-                    b.Navigation("ParentCategory");
                 });
 
             modelBuilder.Entity("DAL.Entity.Product", b =>

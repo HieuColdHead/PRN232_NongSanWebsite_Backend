@@ -6,8 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace NongXanhController.Controllers;
 
 [Route("api/[controller]")]
-[ApiController]
-public class ProductsController : ControllerBase
+public class ProductsController : BaseApiController
 {
     private readonly IProductService _service;
 
@@ -17,55 +16,59 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResult<Product>>> GetProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<ApiResponse<PagedResult<Product>>>> GetProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1 || pageSize < 1)
         {
-            return BadRequest("Page number and page size must be greater than 0.");
+            return ErrorResponse<PagedResult<Product>>("Page number and page size must be greater than 0.");
         }
 
-        return Ok(await _service.GetPagedAsync(pageNumber, pageSize));
+        var result = await _service.GetPagedAsync(pageNumber, pageSize);
+        return SuccessResponse(result);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Product>> GetProduct(int id)
+    public async Task<ActionResult<ApiResponse<Product>>> GetProduct(int id)
     {
         var product = await _service.GetByIdAsync(id);
 
         if (product == null)
         {
-            return NotFound();
+            return ErrorResponse<Product>("Product not found", statusCode: 404);
         }
 
-        return product;
+        return SuccessResponse(product);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Product>> PostProduct(Product product)
+    public async Task<ActionResult<ApiResponse<Product>>> PostProduct(Product product)
     {
         await _service.AddAsync(product);
 
-        return CreatedAtAction("GetProduct", new { id = product.ProductId }, product);
+        // Note: CreatedAtAction is a bit tricky with the wrapper, so we return Ok with data for simplicity
+        // or we can construct the response manually if we want 201 Created.
+        // For now, let's use SuccessResponse which returns 200 OK.
+        return SuccessResponse(product, "Product created successfully");
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutProduct(int id, Product product)
+    public async Task<ActionResult<ApiResponse<object>>> PutProduct(int id, Product product)
     {
         if (id != product.ProductId)
         {
-            return BadRequest();
+            return ErrorResponse<object>("Product ID mismatch");
         }
 
         await _service.UpdateAsync(product);
 
-        return NoContent();
+        return SuccessResponse("Product updated successfully");
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProduct(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteProduct(int id)
     {
         await _service.DeleteAsync(id);
 
-        return NoContent();
+        return SuccessResponse("Product deleted successfully");
     }
 }

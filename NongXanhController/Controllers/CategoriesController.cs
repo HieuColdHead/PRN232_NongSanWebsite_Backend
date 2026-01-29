@@ -1,12 +1,12 @@
-﻿using BLL.Services.Interfaces;
+﻿using BLL.DTOs;
+using BLL.Services.Interfaces;
 using DAL.Entity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
 
 [Route("api/[controller]")]
-[ApiController]
-public class CategoriesController : ControllerBase
+public class CategoriesController : BaseApiController
 {
     private readonly ICategoryService _service;
 
@@ -16,50 +16,48 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+    public async Task<ActionResult<ApiResponse<IEnumerable<Category>>>> GetCategories()
     {
-        return Ok(await _service.GetAllAsync());
+        var categories = await _service.GetAllAsync();
+        return SuccessResponse(categories);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Category>> GetCategory(int id)
+    public async Task<ActionResult<ApiResponse<Category>>> GetCategory(int id)
     {
         var category = await _service.GetByIdAsync(id);
 
         if (category == null)
         {
-            return NotFound();
+            return ErrorResponse<Category>("Category not found", statusCode: 404);
         }
 
-        return category;
+        return SuccessResponse(category);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Category>> PostCategory(Category category)
+    public async Task<ActionResult<ApiResponse<Category>>> PostCategory(Category category)
     {
         await _service.AddAsync(category);
-
-        return CreatedAtAction("GetCategory", new { id = category.CategoryId }, category);
+        return SuccessResponse(category, "Category created successfully");
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutCategory(int id, Category category)
+    public async Task<ActionResult<ApiResponse<object>>> PutCategory(int id, Category category)
     {
         if (id != category.CategoryId)
         {
-            return BadRequest();
+            return ErrorResponse<object>("Category ID mismatch");
         }
 
         await _service.UpdateAsync(category);
-
-        return NoContent();
+        return SuccessResponse("Category updated successfully");
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteCategory(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteCategory(int id)
     {
         await _service.DeleteAsync(id);
-
-        return NoContent();
+        return SuccessResponse("Category deleted successfully");
     }
 }

@@ -18,12 +18,7 @@ public class Category
     [Column("description")]
     [MaxLength(500)]
     public string? Description { get; set; }
-
-    [Column("parent_category_id")]
-    public int? ParentCategoryId { get; set; }
-
-    [ForeignKey("ParentCategoryId")]
-    public Category? ParentCategory { get; set; }
+    
 
     [Column("status")]
     [MaxLength(50)]

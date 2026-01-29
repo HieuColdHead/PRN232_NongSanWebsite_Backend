@@ -1,12 +1,12 @@
-﻿using BLL.Services.Interfaces;
+﻿using BLL.DTOs;
+using BLL.Services.Interfaces;
 using DAL.Entity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
 
 [Route("api/[controller]")]
-[ApiController]
-public class ProvidersController : ControllerBase
+public class ProvidersController : BaseApiController
 {
     private readonly IProviderService _service;
 
@@ -16,50 +16,48 @@ public class ProvidersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Provider>>> GetProviders()
+    public async Task<ActionResult<ApiResponse<IEnumerable<Provider>>>> GetProviders()
     {
-        return Ok(await _service.GetAllAsync());
+        var providers = await _service.GetAllAsync();
+        return SuccessResponse(providers);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Provider>> GetProvider(int id)
+    public async Task<ActionResult<ApiResponse<Provider>>> GetProvider(int id)
     {
         var provider = await _service.GetByIdAsync(id);
 
         if (provider == null)
         {
-            return NotFound();
+            return ErrorResponse<Provider>("Provider not found", statusCode: 404);
         }
 
-        return provider;
+        return SuccessResponse(provider);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Provider>> PostProvider(Provider provider)
+    public async Task<ActionResult<ApiResponse<Provider>>> PostProvider(Provider provider)
     {
         await _service.AddAsync(provider);
-
-        return CreatedAtAction("GetProvider", new { id = provider.ProviderId }, provider);
+        return SuccessResponse(provider, "Provider created successfully");
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutProvider(int id, Provider provider)
+    public async Task<ActionResult<ApiResponse<object>>> PutProvider(int id, Provider provider)
     {
         if (id != provider.ProviderId)
         {
-            return BadRequest();
+            return ErrorResponse<object>("Provider ID mismatch");
         }
 
         await _service.UpdateAsync(provider);
-
-        return NoContent();
+        return SuccessResponse("Provider updated successfully");
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProvider(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteProvider(int id)
     {
         await _service.DeleteAsync(id);
-
-        return NoContent();
+        return SuccessResponse("Provider deleted successfully");
     }
 }
