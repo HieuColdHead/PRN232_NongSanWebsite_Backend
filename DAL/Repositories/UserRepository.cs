@@ -15,11 +15,6 @@ public class UserRepository : IUserRepository
         _dbContext = dbContext;
     }
 
-    public Task<User?> GetByFirebaseUidAsync(string firebaseUid)
-    {
-        return _dbContext.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
-    }
-
     public Task<bool> EmailExistsAsync(string email)
     {
         return _dbContext.Users.AnyAsync(u => u.Email == email);

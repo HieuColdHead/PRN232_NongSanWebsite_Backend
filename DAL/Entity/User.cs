@@ -9,10 +9,6 @@ public class User
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    [Required]
-    [MaxLength(128)]
-    public string FirebaseUid { get; set; } = string.Empty;
-
     [EmailAddress]
     [MaxLength(255)]
     public string? Email { get; set; }

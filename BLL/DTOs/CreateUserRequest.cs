@@ -4,10 +4,6 @@ namespace BLL.DTOs;
 
 public class CreateUserRequest
 {
-    [Required]
-    [MaxLength(128)]
-    public string FirebaseUid { get; set; } = string.Empty;
-
     [EmailAddress]
     [MaxLength(255)]
     public string? Email { get; set; }

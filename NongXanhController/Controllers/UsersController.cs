@@ -1,12 +1,10 @@
 using BLL.DTOs;
 using BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 
 namespace NongXanhController.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/users")]
 public class UsersController : ControllerBase
 {

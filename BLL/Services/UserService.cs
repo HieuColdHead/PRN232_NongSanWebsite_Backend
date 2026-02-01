@@ -47,7 +47,6 @@ public class UserService : IUserService
 
         var user = new User
         {
-            FirebaseUid = request.FirebaseUid,
             Email = request.Email,
             PhoneNumber = request.PhoneNumber,
             DisplayName = request.DisplayName,
@@ -81,7 +80,6 @@ public class UserService : IUserService
         return new UserDto
         {
             Id = user.Id,
-            FirebaseUid = user.FirebaseUid,
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
             DisplayName = user.DisplayName,

@@ -1,14 +1,9 @@
-using FirebaseAdmin;
-using Google.Apis.Auth.OAuth2;
-using System.Text;
 using BLL.Services;
 using BLL.Services.Interfaces;
 using DAL.Data;
 using DAL.Repositories;
 using DAL.Repositories.Interfaces;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace NongXanhController
@@ -18,39 +13,6 @@ namespace NongXanhController
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_CREDENTIALS");
-
-            if (string.IsNullOrEmpty(firebaseJson))
-            {
-                // Fallback to local file if environment variable is not set
-                var firebaseFile = Path.Combine(Directory.GetCurrentDirectory(), "firebase.json");
-                if (File.Exists(firebaseFile))
-                {
-                    firebaseJson = File.ReadAllText(firebaseFile);
-                }
-                else
-                {
-                    // If neither exists, we can't initialize Firebase properly.
-                    // Depending on your needs, you might throw or just log a warning.
-                    // throw new Exception("Firebase credentials not found (env var or firebase.json)");
-                    Console.WriteLine("Warning: Firebase credentials not found.");
-                }
-            }
-
-            if (!string.IsNullOrEmpty(firebaseJson))
-            {
-                try
-                {
-                    FirebaseApp.Create(new AppOptions
-                    {
-                        Credential = GoogleCredential.FromJson(firebaseJson)
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error initializing Firebase: {ex.Message}");
-                }
-            }
 
             // Add services to the container.
 
@@ -59,9 +21,6 @@ namespace NongXanhController
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(connectionString));
 
-            builder.Services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
-            builder.Services.AddScoped<IAuthService, AuthService>();
-            builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IProviderService, ProviderService>();
@@ -71,58 +30,10 @@ namespace NongXanhController
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddHttpClient();
 
-            var jwtKey = builder.Configuration["Jwt:Key"];
-            if (!string.IsNullOrWhiteSpace(jwtKey))
-            {
-                var issuer = builder.Configuration["Jwt:Issuer"];
-                var audience = builder.Configuration["Jwt:Audience"];
-
-                builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                    .AddJwtBearer(options =>
-                    {
-                        options.TokenValidationParameters = new TokenValidationParameters
-                        {
-                            ValidateIssuerSigningKey = true,
-                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-                            ValidateIssuer = !string.IsNullOrWhiteSpace(issuer),
-                            ValidIssuer = issuer,
-                            ValidateAudience = !string.IsNullOrWhiteSpace(audience),
-                            ValidAudience = audience,
-                            ValidateLifetime = true,
-                            ClockSkew = TimeSpan.FromMinutes(1)
-                        };
-                    });
-            }
-
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen(c =>
-            {
-                c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-                {
-                    Description = "Enter 'Bearer' [space] and your token",
-                    Name = "Authorization",
-                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer"
-                });
-
-                c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-                {
-                    {
-                        new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-                        {
-                            Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                            {
-                                Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                                Id = "Bearer"
-                            }
-                        },
-                        new string[] { }
-                    }
-                });
-            });
+            builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
@@ -147,10 +58,6 @@ namespace NongXanhController
 
             // Redirect root to Swagger UI
             app.MapGet("/", () => Results.Redirect("/swagger"));
-
-            app.UseAuthentication();
-            app.UseAuthorization();
-
 
             app.MapControllers();
 

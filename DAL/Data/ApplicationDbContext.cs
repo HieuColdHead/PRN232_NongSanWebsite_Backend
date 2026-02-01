@@ -27,14 +27,6 @@ public class ApplicationDbContext : DbContext
                 .IsUnique()
                 .HasDatabaseName("IX_Users_Email");
 
-            entity.HasIndex(e => e.FirebaseUid)
-                .IsUnique()
-                .HasDatabaseName("IX_Users_FirebaseUid");
-
-            entity.Property(e => e.FirebaseUid)
-                .IsRequired()
-                .HasMaxLength(128);
-
             entity.Property(e => e.Email)
                 .HasMaxLength(255);
 
