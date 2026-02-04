@@ -20,6 +20,11 @@ public class UserRepository : IUserRepository
         return _dbContext.Users.AnyAsync(u => u.Email == email);
     }
 
+    public Task<User?> GetByEmailAsync(string email)
+    {
+        return _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+    }
+
     public Task AddAsync(User user)
     {
         _dbContext.Users.Add(user);

@@ -19,6 +19,14 @@ public class User
     [MaxLength(150)]
     public string? DisplayName { get; set; }
 
+    // Only set for local email/password accounts.
+    [MaxLength(255)]
+    public string? PasswordHash { get; set; }
+
+    // Role is not stored in DB in option B.
+    [NotMapped]
+    public UserRole Role { get; set; } = UserRole.User;
+
     [Required]
     [MaxLength(50)]
     public string Provider { get; set; } = string.Empty;

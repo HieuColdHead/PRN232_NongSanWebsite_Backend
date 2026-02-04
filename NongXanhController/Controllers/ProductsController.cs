@@ -1,11 +1,13 @@
 ﻿using BLL.DTOs;
 using BLL.Services.Interfaces;
 using DAL.Entity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
 
 [Route("api/[controller]")]
+[Authorize]
 public class ProductsController : BaseApiController
 {
     private readonly IProductService _service;

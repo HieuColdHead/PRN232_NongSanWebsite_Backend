@@ -1,10 +1,13 @@
+using System.Text;
 using BLL.Services;
 using BLL.Services.Interfaces;
 using DAL.Data;
 using DAL.Repositories;
 using DAL.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 namespace NongXanhController
 {
@@ -22,18 +25,82 @@ namespace NongXanhController
                 options.UseNpgsql(connectionString));
 
             builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IEmailOtpRepository, EmailOtpRepository>();
+
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IProviderService, ProviderService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IProductVariantService, ProductVariantService>();
+
+            builder.Services.AddScoped<ITokenService, TokenService>();
+            builder.Services.AddScoped<IGoogleOAuthService, GoogleOAuthService>();
+            builder.Services.AddScoped<IEmailSender, EmailSender>();
+            builder.Services.AddScoped<IEmailOtpService, EmailOtpService>();
+
+            builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+            builder.Services.AddScoped<ILocalAuthService, LocalAuthService>();
+
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddHttpClient();
+
+            // JWT
+            var jwtKey = builder.Configuration["Jwt:Key"];
+            if (!string.IsNullOrWhiteSpace(jwtKey))
+            {
+                var issuer = builder.Configuration["Jwt:Issuer"];
+                var audience = builder.Configuration["Jwt:Audience"];
+
+                builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                    .AddJwtBearer(options =>
+                    {
+                        options.TokenValidationParameters = new TokenValidationParameters
+                        {
+                            ValidateIssuerSigningKey = true,
+                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                            ValidateIssuer = !string.IsNullOrWhiteSpace(issuer),
+                            ValidIssuer = issuer,
+                            ValidateAudience = !string.IsNullOrWhiteSpace(audience),
+                            ValidAudience = audience,
+                            ValidateLifetime = true,
+                            ClockSkew = TimeSpan.FromMinutes(1)
+                        };
+                    });
+            }
+
+            builder.Services.AddAuthorization();
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "NongXanh API", Version = "v1" });
+
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "Enter 'Bearer' [space] and your token",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
 
             var app = builder.Build();
 
@@ -58,6 +125,9 @@ namespace NongXanhController
 
             // Redirect root to Swagger UI
             app.MapGet("/", () => Results.Redirect("/swagger"));
+
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers();
 

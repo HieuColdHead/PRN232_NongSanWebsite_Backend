@@ -11,6 +11,8 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; }
+    public DbSet<EmailOtp> EmailOtps { get; set; }
+    public DbSet<PendingRegistration> PendingRegistrations { get; set; }
     public DbSet<Provider> Providers { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Product> Products { get; set; }
@@ -36,6 +38,12 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.DisplayName)
                 .HasMaxLength(150);
 
+            entity.Property(e => e.PasswordHash)
+                .HasMaxLength(255);
+
+            // `Role` is not stored in DB (see [NotMapped] in `User`).
+            entity.Ignore(e => e.Role);
+
             entity.Property(e => e.Provider)
                 .IsRequired()
                 .HasMaxLength(50);
@@ -45,6 +53,35 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        modelBuilder.Entity<PendingRegistration>(entity =>
+        {
+            entity.HasIndex(e => e.Email)
+                .IsUnique()
+                .HasDatabaseName("IX_PendingRegistrations_Email");
+
+            entity.Property(e => e.Email)
+                .HasMaxLength(255);
+
+            entity.Property(e => e.PhoneNumber)
+                .HasMaxLength(20);
+
+            entity.Property(e => e.DisplayName)
+                .HasMaxLength(150);
+
+            entity.Property(e => e.PasswordHash)
+                .HasMaxLength(255);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        modelBuilder.Entity<EmailOtp>(entity =>
+        {
+            entity.HasIndex(e => new { e.Email, e.ExpiresAt });
+            entity.Property(e => e.Email).HasMaxLength(255);
+            entity.Property(e => e.OtpHash).HasMaxLength(128);
         });
 
         modelBuilder.Entity<Provider>(entity =>
