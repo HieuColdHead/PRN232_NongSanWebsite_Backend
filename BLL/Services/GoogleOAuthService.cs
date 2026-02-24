@@ -61,7 +61,7 @@ public sealed class GoogleOAuthService : IGoogleOAuthService
         };
     }
 
-    public async Task<AuthResponse> ExchangeCodeAndLoginAsync(string code, string state)
+    public async Task<AuthResponse> ExchangeCodeAndLoginAsync(string code, string state, string? redirectUri = null)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -71,7 +71,7 @@ public sealed class GoogleOAuthService : IGoogleOAuthService
         // TODO: validate state (match with previously issued state)
         _ = state;
 
-        var token = await ExchangeCodeForTokensAsync(code);
+        var token = await ExchangeCodeForTokensAsync(code, redirectUri);
         if (string.IsNullOrWhiteSpace(token.IdToken))
         {
             var details = $"access_token_present={(!string.IsNullOrWhiteSpace(token.AccessToken))}, token_type={token.TokenType}, scope={token.Scope}";
@@ -150,11 +150,14 @@ public sealed class GoogleOAuthService : IGoogleOAuthService
         };
     }
 
-    private async Task<GoogleTokenResponse> ExchangeCodeForTokensAsync(string code)
+    private async Task<GoogleTokenResponse> ExchangeCodeForTokensAsync(string code, string? customRedirectUri = null)
     {
         var clientId = GetRequired("GoogleOAuth:ClientId");
         var clientSecret = GetRequired("GoogleOAuth:ClientSecret");
-        var redirectUri = GetRequired("GoogleOAuth:RedirectUri");
+        // Use custom redirect URI from mobile app if provided, otherwise use server config
+        var redirectUri = !string.IsNullOrWhiteSpace(customRedirectUri) 
+            ? customRedirectUri 
+            : GetRequired("GoogleOAuth:RedirectUri");
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://oauth2.googleapis.com/token");
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>

@@ -48,8 +48,44 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _googleOAuthService.ExchangeCodeAndLoginAsync(request.Code, request.State);
+        var result = await _googleOAuthService.ExchangeCodeAndLoginAsync(request.Code, request.State, request.RedirectUri);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// GET callback endpoint for Google OAuth redirect.
+    /// After processing, redirects to mobile app scheme with token.
+    /// </summary>
+    [HttpGet("google/callback")]
+    public async Task<IActionResult> GoogleCallbackRedirect([FromQuery] string code, [FromQuery] string state, [FromQuery] string? error = null)
+    {
+        const string appScheme = "nongxanh://";
+        
+        if (!string.IsNullOrEmpty(error))
+        {
+            return Redirect($"{appScheme}auth/error?error={Uri.EscapeDataString(error)}");
+        }
+
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
+        {
+            return Redirect($"{appScheme}auth/error?error=missing_params");
+        }
+
+        try
+        {
+            var result = await _googleOAuthService.ExchangeCodeAndLoginAsync(code, state);
+            // Redirect to mobile app with token
+            var token = Uri.EscapeDataString(result.AccessToken);
+            var userId = Uri.EscapeDataString(result.User.Id.ToString());
+            var email = Uri.EscapeDataString(result.User.Email);
+            var displayName = Uri.EscapeDataString(result.User.DisplayName ?? "");
+            
+            return Redirect($"{appScheme}auth/success?token={token}&userId={userId}&email={email}&displayName={displayName}");
+        }
+        catch (Exception ex)
+        {
+            return Redirect($"{appScheme}auth/error?error={Uri.EscapeDataString(ex.Message)}");
+        }
     }
 
     [HttpPost("email/request-otp")]
