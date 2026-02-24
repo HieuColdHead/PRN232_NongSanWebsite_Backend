@@ -40,6 +40,18 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("google/mobile")]
+    public async Task<ActionResult<AuthResponse>> GoogleMobileLogin([FromBody] GoogleMobileLoginRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _googleOAuthService.LoginWithIdTokenAsync(request.IdToken);
+        return Ok(result);
+    }
+
     [HttpPost("google/callback")]
     public async Task<ActionResult<AuthResponse>> GoogleCallback([FromBody] GoogleOAuthCallbackRequest request)
     {
