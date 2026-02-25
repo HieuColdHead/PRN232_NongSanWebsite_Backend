@@ -18,6 +18,7 @@ public class CategoriesController : BaseApiController
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<IEnumerable<Category>>>> GetCategories()
     {
         var categories = await _service.GetAllAsync();
@@ -25,6 +26,7 @@ public class CategoriesController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<Category>>> GetCategory(int id)
     {
         var category = await _service.GetByIdAsync(id);
@@ -40,6 +42,11 @@ public class CategoriesController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<Category>>> PostCategory(CreateCategoryRequest request)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<Category>("Forbidden", statusCode: 403);
+        }
+
         var category = await _service.CreateAsync(request);
         return SuccessResponse(category, "Category created successfully");
     }
@@ -47,6 +54,11 @@ public class CategoriesController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutCategory(int id, Category category)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
         if (id != category.CategoryId)
         {
             return ErrorResponse<object>("Category ID mismatch");
@@ -59,6 +71,11 @@ public class CategoriesController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteCategory(int id)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
         await _service.DeleteAsync(id);
         return SuccessResponse("Category deleted successfully");
     }

@@ -57,6 +57,7 @@ public sealed class LocalAuthService : ILocalAuthService
                 Provider = user.Provider,
                 CreatedAt = user.CreatedAt,
                 IsActive = user.IsActive,
+                Role = _tokenService.ResolveRoleName(user),
                 LastLoginAt = user.LastLoginAt
             }
         };
@@ -103,6 +104,7 @@ public sealed class LocalAuthService : ILocalAuthService
                 Provider = user.Provider,
                 CreatedAt = user.CreatedAt,
                 IsActive = user.IsActive,
+                Role = _tokenService.ResolveRoleName(user),
                 LastLoginAt = user.LastLoginAt
             }
         };

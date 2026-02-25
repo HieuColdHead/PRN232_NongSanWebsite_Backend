@@ -10,11 +10,13 @@ namespace BLL.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly ITokenService _tokenService;
     private readonly ILogger<UserService> _logger;
 
-    public UserService(IUserRepository userRepository, ILogger<UserService> logger)
+    public UserService(IUserRepository userRepository, ITokenService tokenService, ILogger<UserService> logger)
     {
         _userRepository = userRepository;
+        _tokenService = tokenService;
         _logger = logger;
     }
 
@@ -75,7 +77,7 @@ public class UserService : IUserService
         return _userRepository.DeleteAsync(id);
     }
 
-    private static UserDto MapToDto(User user)
+    private UserDto MapToDto(User user)
     {
         return new UserDto
         {
@@ -86,6 +88,7 @@ public class UserService : IUserService
             Provider = user.Provider,
             CreatedAt = user.CreatedAt,
             IsActive = user.IsActive,
+            Role = _tokenService.ResolveRoleName(user),
             LastLoginAt = user.LastLoginAt
         };
     }

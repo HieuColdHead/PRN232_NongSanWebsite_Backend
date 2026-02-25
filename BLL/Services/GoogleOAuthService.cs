@@ -61,7 +61,7 @@ public sealed class GoogleOAuthService : IGoogleOAuthService
         };
     }
 
-    public async Task<AuthResponse> ExchangeCodeAndLoginAsync(string code, string state)
+    public async Task<AuthResponse> ExchangeCodeAndLoginAsync(string code, string state, string? redirectUri = null)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -71,7 +71,7 @@ public sealed class GoogleOAuthService : IGoogleOAuthService
         // TODO: validate state (match with previously issued state)
         _ = state;
 
-        var token = await ExchangeCodeForTokensAsync(code);
+        var token = await ExchangeCodeForTokensAsync(code, redirectUri);
         if (string.IsNullOrWhiteSpace(token.IdToken))
         {
             var details = $"access_token_present={(!string.IsNullOrWhiteSpace(token.AccessToken))}, token_type={token.TokenType}, scope={token.Scope}";
@@ -84,77 +84,33 @@ public sealed class GoogleOAuthService : IGoogleOAuthService
             Audience = new[] { clientId }
         });
 
-        if (string.IsNullOrWhiteSpace(payload.Email))
-        {
-            throw new InvalidOperationException("Google account does not provide an email.");
-        }
-
-        var email = payload.Email.Trim().ToLowerInvariant();
-        var existing = await _userRepository.GetByEmailAsync(email);
-
-        if (existing is null)
-        {
-            var user = new User
-            {
-                Email = email,
-                DisplayName = payload.Name,
-                Provider = "Google",
-                Role = UserRole.User,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                LastLoginAt = DateTime.UtcNow
-            };
-
-            await _userRepository.CreateAsync(user);
-
-            return new AuthResponse
-            {
-                AccessToken = _tokenService.CreateAccessToken(user),
-                User = new UserDto
-                {
-                    Id = user.Id,
-                    Email = user.Email,
-                    PhoneNumber = user.PhoneNumber,
-                    DisplayName = user.DisplayName,
-                    Provider = user.Provider,
-                    CreatedAt = user.CreatedAt,
-                    IsActive = user.IsActive,
-                    LastLoginAt = user.LastLoginAt
-                }
-            };
-        }
-
-        existing.LastLoginAt = DateTime.UtcNow;
-        if (string.IsNullOrWhiteSpace(existing.DisplayName))
-        {
-            existing.DisplayName = payload.Name;
-        }
-
-        await _userRepository.UpdateAsync(existing);
-        await _userRepository.SaveChangesAsync();
-
-        return new AuthResponse
-        {
-            AccessToken = _tokenService.CreateAccessToken(existing),
-            User = new UserDto
-            {
-                Id = existing.Id,
-                Email = existing.Email,
-                PhoneNumber = existing.PhoneNumber,
-                DisplayName = existing.DisplayName,
-                Provider = existing.Provider,
-                CreatedAt = existing.CreatedAt,
-                IsActive = existing.IsActive,
-                LastLoginAt = existing.LastLoginAt
-            }
-        };
+        return await CreateOrUpdateUserAndSignInAsync(payload.Email, payload.Name);
     }
 
-    private async Task<GoogleTokenResponse> ExchangeCodeForTokensAsync(string code)
+    public async Task<AuthResponse> LoginWithIdTokenAsync(string idToken)
+    {
+        if (string.IsNullOrWhiteSpace(idToken))
+        {
+            throw new ArgumentException("Id token is required.", nameof(idToken));
+        }
+
+        var clientId = GetRequired("GoogleOAuth:ClientId");
+        var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, new GoogleJsonWebSignature.ValidationSettings
+        {
+            Audience = new[] { clientId }
+        });
+
+        return await CreateOrUpdateUserAndSignInAsync(payload.Email, payload.Name);
+    }
+
+    private async Task<GoogleTokenResponse> ExchangeCodeForTokensAsync(string code, string? customRedirectUri = null)
     {
         var clientId = GetRequired("GoogleOAuth:ClientId");
         var clientSecret = GetRequired("GoogleOAuth:ClientSecret");
-        var redirectUri = GetRequired("GoogleOAuth:RedirectUri");
+        // Use custom redirect URI from mobile app if provided, otherwise use server config
+        var redirectUri = !string.IsNullOrWhiteSpace(customRedirectUri) 
+            ? customRedirectUri 
+            : GetRequired("GoogleOAuth:RedirectUri");
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://oauth2.googleapis.com/token");
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -190,6 +146,76 @@ public sealed class GoogleOAuthService : IGoogleOAuthService
         if (string.IsNullOrWhiteSpace(value))
             throw new InvalidOperationException($"Missing or empty configuration: {key}");
         return value;
+    }
+
+    private async Task<AuthResponse> CreateOrUpdateUserAndSignInAsync(string emailRaw, string? displayName)
+    {
+        if (string.IsNullOrWhiteSpace(emailRaw))
+        {
+            throw new InvalidOperationException("Google account does not provide an email.");
+        }
+
+        var email = emailRaw.Trim().ToLowerInvariant();
+        var existing = await _userRepository.GetByEmailAsync(email);
+
+        if (existing is null)
+        {
+            var user = new User
+            {
+                Email = email,
+                DisplayName = displayName,
+                Provider = "Google",
+                Role = UserRole.User,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                LastLoginAt = DateTime.UtcNow
+            };
+
+            await _userRepository.CreateAsync(user);
+
+            return new AuthResponse
+            {
+                AccessToken = _tokenService.CreateAccessToken(user),
+                User = new UserDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber,
+                    DisplayName = user.DisplayName,
+                    Provider = user.Provider,
+                    CreatedAt = user.CreatedAt,
+                    IsActive = user.IsActive,
+                    Role = _tokenService.ResolveRoleName(user),
+                    LastLoginAt = user.LastLoginAt
+                }
+            };
+        }
+
+        existing.LastLoginAt = DateTime.UtcNow;
+        if (string.IsNullOrWhiteSpace(existing.DisplayName))
+        {
+            existing.DisplayName = displayName;
+        }
+
+        await _userRepository.UpdateAsync(existing);
+        await _userRepository.SaveChangesAsync();
+
+        return new AuthResponse
+        {
+            AccessToken = _tokenService.CreateAccessToken(existing),
+            User = new UserDto
+            {
+                Id = existing.Id,
+                Email = existing.Email,
+                PhoneNumber = existing.PhoneNumber,
+                DisplayName = existing.DisplayName,
+                Provider = existing.Provider,
+                CreatedAt = existing.CreatedAt,
+                IsActive = existing.IsActive,
+                Role = _tokenService.ResolveRoleName(existing),
+                LastLoginAt = existing.LastLoginAt
+            }
+        };
     }
 
     private sealed class GoogleTokenResponse

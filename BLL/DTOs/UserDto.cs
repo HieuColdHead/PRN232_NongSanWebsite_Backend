@@ -9,5 +9,6 @@ public class UserDto
     public string Provider { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; }
+    public string Role { get; set; } = string.Empty;
     public DateTime? LastLoginAt { get; set; }
 }

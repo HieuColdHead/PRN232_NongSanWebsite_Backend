@@ -18,6 +18,7 @@ public class ProductVariantsController : BaseApiController
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<IEnumerable<ProductVariant>>>> GetProductVariants()
     {
         var variants = await _service.GetAllAsync();
@@ -25,6 +26,7 @@ public class ProductVariantsController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<ProductVariant>>> GetProductVariant(int id)
     {
         var productVariant = await _service.GetByIdAsync(id);
@@ -40,6 +42,11 @@ public class ProductVariantsController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<ProductVariant>>> PostProductVariant(CreateProductVariantRequest request)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<ProductVariant>("Forbidden", statusCode: 403);
+        }
+
         var variant = await _service.CreateAsync(request);
         return SuccessResponse(variant, "Product variant created successfully");
     }
@@ -47,6 +54,11 @@ public class ProductVariantsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutProductVariant(int id, ProductVariant productVariant)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
         if (id != productVariant.VariantId)
         {
             return ErrorResponse<object>("Product variant ID mismatch");
@@ -59,6 +71,11 @@ public class ProductVariantsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteProductVariant(int id)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
         await _service.DeleteAsync(id);
         return SuccessResponse("Product variant deleted successfully");
     }

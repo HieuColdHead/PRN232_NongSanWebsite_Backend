@@ -105,6 +105,7 @@ public sealed class EmailOtpService : IEmailOtpService
                     Provider = existing.Provider,
                     CreatedAt = existing.CreatedAt,
                     IsActive = existing.IsActive,
+                    Role = _tokenService.ResolveRoleName(existing),
                     LastLoginAt = existing.LastLoginAt
                 }
             };
@@ -164,6 +165,7 @@ public sealed class EmailOtpService : IEmailOtpService
                 Provider = user.Provider,
                 CreatedAt = user.CreatedAt,
                 IsActive = user.IsActive,
+                Role = _tokenService.ResolveRoleName(user),
                 LastLoginAt = user.LastLoginAt
             }
         };

@@ -18,6 +18,7 @@ public class ProvidersController : BaseApiController
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<IEnumerable<Provider>>>> GetProviders()
     {
         var providers = await _service.GetAllAsync();
@@ -25,6 +26,7 @@ public class ProvidersController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<Provider>>> GetProvider(int id)
     {
         var provider = await _service.GetByIdAsync(id);
@@ -40,6 +42,11 @@ public class ProvidersController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<Provider>>> PostProvider(CreateProviderRequest request)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<Provider>("Forbidden", statusCode: 403);
+        }
+
         var provider = await _service.CreateAsync(request);
         return SuccessResponse(provider, "Provider created successfully");
     }
@@ -47,6 +54,11 @@ public class ProvidersController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutProvider(int id, Provider provider)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
         if (id != provider.ProviderId)
         {
             return ErrorResponse<object>("Provider ID mismatch");
@@ -59,6 +71,11 @@ public class ProvidersController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteProvider(int id)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
         await _service.DeleteAsync(id);
         return SuccessResponse("Provider deleted successfully");
     }

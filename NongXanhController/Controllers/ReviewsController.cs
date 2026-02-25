@@ -17,6 +17,7 @@ public class ReviewsController : BaseApiController
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PagedResult<ReviewDto>>>> GetReviews([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1 || pageSize < 1)
@@ -29,6 +30,7 @@ public class ReviewsController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<ReviewDto>>> GetReview(int id)
     {
         var review = await _service.GetByIdAsync(id);
@@ -42,6 +44,7 @@ public class ReviewsController : BaseApiController
     }
 
     [HttpGet("product/{productId}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PagedResult<ReviewDto>>>> GetByProduct(int productId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1 || pageSize < 1)

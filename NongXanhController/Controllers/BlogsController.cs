@@ -17,6 +17,7 @@ public class BlogsController : BaseApiController
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PagedResult<BlogDto>>>> GetBlogs([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1 || pageSize < 1)
@@ -29,6 +30,7 @@ public class BlogsController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<BlogDto>>> GetBlog(int id)
     {
         var blog = await _service.GetByIdAsync(id);
@@ -42,6 +44,7 @@ public class BlogsController : BaseApiController
     }
 
     [HttpGet("author/{authorId}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PagedResult<BlogDto>>>> GetByAuthor(Guid authorId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1 || pageSize < 1)

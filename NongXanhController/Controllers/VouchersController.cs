@@ -17,9 +17,10 @@ public class VouchersController : BaseApiController
     }
 
     /// <summary>
-    /// Any authenticated user can view vouchers.
+    /// Any user (including anonymous) can view vouchers.
     /// </summary>
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PagedResult<VoucherDto>>>> GetVouchers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1 || pageSize < 1)
@@ -32,6 +33,7 @@ public class VouchersController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<VoucherDto>>> GetVoucher(int id)
     {
         var voucher = await _service.GetByIdAsync(id);
@@ -45,6 +47,7 @@ public class VouchersController : BaseApiController
     }
 
     [HttpGet("code/{code}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<VoucherDto>>> GetByCode(string code)
     {
         var voucher = await _service.GetByCodeAsync(code);

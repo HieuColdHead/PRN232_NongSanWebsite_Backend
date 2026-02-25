@@ -57,6 +57,8 @@ public sealed class TokenService : ITokenService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    public string ResolveRoleName(User user) => ResolveRole(user).ToString();
+
     private UserRole ResolveRole(User user)
     {
         if (!string.IsNullOrWhiteSpace(user.Email)

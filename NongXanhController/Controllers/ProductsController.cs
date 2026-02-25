@@ -18,6 +18,7 @@ public class ProductsController : BaseApiController
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PagedResult<Product>>>> GetProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1 || pageSize < 1)
@@ -30,6 +31,7 @@ public class ProductsController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<Product>>> GetProduct(int id)
     {
         var product = await _service.GetByIdAsync(id);
@@ -45,6 +47,11 @@ public class ProductsController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<Product>>> PostProduct(CreateProductRequest request)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<Product>("Forbidden", statusCode: 403);
+        }
+
         var product = await _service.CreateAsync(request);
         return SuccessResponse(product, "Product created successfully");
     }
@@ -52,6 +59,11 @@ public class ProductsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutProduct(int id, Product product)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
         if (id != product.ProductId)
         {
             return ErrorResponse<object>("Product ID mismatch");
@@ -65,6 +77,11 @@ public class ProductsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteProduct(int id)
     {
+        if (!IsAdmin())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
         await _service.DeleteAsync(id);
 
         return SuccessResponse("Product deleted successfully");
