@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace NongXanhController.Controllers;
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous]
+[Authorize]
 public class ProductVariantsController : BaseApiController
 {
     private readonly IProductVariantService _service;
