@@ -1,4 +1,5 @@
-﻿using BLL.Services.Interfaces;
+﻿using BLL.DTOs;
+using BLL.Services.Interfaces;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
 
@@ -23,10 +24,21 @@ public class ProductVariantService : IProductVariantService
         return _repository.GetByIdAsync(id);
     }
 
-    public async Task AddAsync(ProductVariant productVariant)
+    public async Task<ProductVariant> CreateAsync(CreateProductVariantRequest request)
     {
-        await _repository.AddAsync(productVariant);
+        var variant = new ProductVariant
+        {
+            VariantName = request.Name,
+            Price = request.Price,
+            StockQuantity = request.StockQuantity,
+            Sku = request.Sku,
+            Status = request.Status,
+            ProductId = request.ProductId
+        };
+
+        await _repository.AddAsync(variant);
         await _repository.SaveChangesAsync();
+        return variant;
     }
 
     public async Task UpdateAsync(ProductVariant productVariant)

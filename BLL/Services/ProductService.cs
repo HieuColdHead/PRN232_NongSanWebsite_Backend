@@ -37,10 +37,25 @@ public class ProductService : IProductService
         return _repository.GetByIdAsync(id);
     }
 
-    public async Task AddAsync(Product product)
+    public async Task<Product> CreateAsync(CreateProductRequest request)
     {
+        var product = new Product
+        {
+            ProductName = request.Name,
+            Description = request.Description,
+            Origin = request.Origin,
+            Unit = request.Unit,
+            BasePrice = request.BasePrice,
+            IsOrganic = request.IsOrganic,
+            Status = request.Status,
+            CategoryId = request.CategoryId,
+            ProviderId = request.ProviderId,
+            CreatedAt = DateTime.UtcNow
+        };
+
         await _repository.AddAsync(product);
         await _repository.SaveChangesAsync();
+        return product;
     }
 
     public async Task UpdateAsync(Product product)

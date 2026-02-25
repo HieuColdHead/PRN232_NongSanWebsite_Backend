@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
-
+[ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[AllowAnonymous]
 public class ProvidersController : BaseApiController
 {
     private readonly IProviderService _service;
@@ -38,9 +38,9 @@ public class ProvidersController : BaseApiController
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<Provider>>> PostProvider(Provider provider)
+    public async Task<ActionResult<ApiResponse<Provider>>> PostProvider(CreateProviderRequest request)
     {
-        await _service.AddAsync(provider);
+        var provider = await _service.CreateAsync(request);
         return SuccessResponse(provider, "Provider created successfully");
     }
 

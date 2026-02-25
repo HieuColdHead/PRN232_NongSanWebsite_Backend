@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
-
+[ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[AllowAnonymous]
 public class ProductVariantsController : BaseApiController
 {
     private readonly IProductVariantService _service;
@@ -38,10 +38,10 @@ public class ProductVariantsController : BaseApiController
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<ProductVariant>>> PostProductVariant(ProductVariant productVariant)
+    public async Task<ActionResult<ApiResponse<ProductVariant>>> PostProductVariant(CreateProductVariantRequest request)
     {
-        await _service.AddAsync(productVariant);
-        return SuccessResponse(productVariant, "Product variant created successfully");
+        var variant = await _service.CreateAsync(request);
+        return SuccessResponse(variant, "Product variant created successfully");
     }
 
     [HttpPut("{id}")]

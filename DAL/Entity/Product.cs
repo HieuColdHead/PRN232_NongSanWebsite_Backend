@@ -7,6 +7,7 @@ namespace DAL.Entity;
 public class Product
 {
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("product_id")]
     public int ProductId { get; set; }
 

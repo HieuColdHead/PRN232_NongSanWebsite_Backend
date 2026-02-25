@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
-
+[ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[AllowAnonymous]
 public class ProductsController : BaseApiController
 {
     private readonly IProductService _service;
@@ -43,13 +43,9 @@ public class ProductsController : BaseApiController
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<Product>>> PostProduct(Product product)
+    public async Task<ActionResult<ApiResponse<Product>>> PostProduct(CreateProductRequest request)
     {
-        await _service.AddAsync(product);
-
-        // Note: CreatedAtAction is a bit tricky with the wrapper, so we return Ok with data for simplicity
-        // or we can construct the response manually if we want 201 Created.
-        // For now, let's use SuccessResponse which returns 200 OK.
+        var product = await _service.CreateAsync(request);
         return SuccessResponse(product, "Product created successfully");
     }
 

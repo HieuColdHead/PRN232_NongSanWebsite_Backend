@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
-
+[ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[AllowAnonymous]
 public class CategoriesController : BaseApiController
 {
     private readonly ICategoryService _service;
@@ -38,9 +38,9 @@ public class CategoriesController : BaseApiController
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<Category>>> PostCategory(Category category)
+    public async Task<ActionResult<ApiResponse<Category>>> PostCategory(CreateCategoryRequest request)
     {
-        await _service.AddAsync(category);
+        var category = await _service.CreateAsync(request);
         return SuccessResponse(category, "Category created successfully");
     }
 

@@ -1,4 +1,5 @@
-﻿using BLL.Services.Interfaces;
+﻿using BLL.DTOs;
+using BLL.Services.Interfaces;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
 
@@ -23,10 +24,22 @@ public class ProviderService : IProviderService
         return _repository.GetByIdAsync(id);
     }
 
-    public async Task AddAsync(Provider provider)
+    public async Task<Provider> CreateAsync(CreateProviderRequest request)
     {
+        var provider = new Provider
+        {
+            ProviderName = request.Name,
+            Description = request.Description,
+            Address = request.Address,
+            Phone = request.Phone,
+            Email = request.Email,
+            RatingAverage = request.RatingAverage,
+            Status = request.Status
+        };
+
         await _repository.AddAsync(provider);
         await _repository.SaveChangesAsync();
+        return provider;
     }
 
     public async Task UpdateAsync(Provider provider)

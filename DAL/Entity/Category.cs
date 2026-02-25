@@ -7,6 +7,7 @@ namespace DAL.Entity;
 public class Category
 {
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("category_id")]
     public int CategoryId { get; set; }
 
@@ -18,12 +19,10 @@ public class Category
     [Column("description")]
     [MaxLength(500)]
     public string? Description { get; set; }
-    
-
-    [Column("status")]
-    [MaxLength(50)]
-    public string? Status { get; set; }
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; } = false;
+
+    [NotMapped]
+    public List<string> Children { get; set; } = new List<string>();
 }

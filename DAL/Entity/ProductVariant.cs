@@ -7,6 +7,7 @@ namespace DAL.Entity;
 public class ProductVariant
 {
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("variant_id")]
     public int VariantId { get; set; }
 

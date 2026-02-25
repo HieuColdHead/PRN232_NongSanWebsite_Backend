@@ -1,4 +1,5 @@
-﻿using BLL.Services.Interfaces;
+﻿using BLL.DTOs;
+using BLL.Services.Interfaces;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
 
@@ -23,10 +24,18 @@ public class CategoryService : ICategoryService
         return _repository.GetByIdAsync(id);
     }
 
-    public async Task AddAsync(Category category)
+    public async Task<Category> CreateAsync(CreateCategoryRequest request)
     {
+        var category = new Category
+        {
+            CategoryName = request.Name,
+            Description = request.Description,
+            Children = request.Children
+        };
+
         await _repository.AddAsync(category);
         await _repository.SaveChangesAsync();
+        return category;
     }
 
     public async Task UpdateAsync(Category category)
