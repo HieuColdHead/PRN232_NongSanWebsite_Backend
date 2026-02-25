@@ -33,6 +33,14 @@ namespace NongXanhController
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IProductVariantService, ProductVariantService>();
 
+            builder.Services.AddScoped<IOrderService, OrderService>();
+            builder.Services.AddScoped<IReviewService, ReviewService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<ICartService, CartService>();
+            builder.Services.AddScoped<IVoucherService, VoucherService>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IBlogService, BlogService>();
+
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IGoogleOAuthService, GoogleOAuthService>();
             builder.Services.AddScoped<IEmailSender, EmailSender>();
@@ -114,6 +122,29 @@ namespace NongXanhController
                     Console.WriteLine($"Áp dụng {pendingMigrations.Count()}  migration(s)...");
                     db.Database.Migrate();
                     Console.WriteLine("Đã tự update migrations");
+                }
+
+                // Seed admin account if not exists
+                var adminEmails = app.Configuration.GetSection("AdminEmails").Get<string[]>() ?? [];
+                var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+                foreach (var adminEmail in adminEmails)
+                {
+                    var email = adminEmail.Trim().ToLowerInvariant();
+                    var exists = db.Users.Any(u => u.Email == email);
+                    if (!exists)
+                    {
+                        db.Users.Add(new DAL.Entity.User
+                        {
+                            Email = email,
+                            DisplayName = "Admin",
+                            Provider = "Local",
+                            PasswordHash = passwordHasher.Hash("Admin@123"),
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                        db.SaveChanges();
+                        Console.WriteLine($"Seeded admin account: {email} / Admin@123");
+                    }
                 }
             }
 

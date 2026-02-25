@@ -184,7 +184,13 @@ public sealed class GoogleOAuthService : IGoogleOAuthService
         return token ?? throw new InvalidOperationException("Failed to deserialize Google token response.");
     }
 
-    private string GetRequired(string key) => _configuration[key] ?? throw new InvalidOperationException($"Missing configuration: {key}");
+    private string GetRequired(string key)
+    {
+        var value = _configuration[key];
+        if (string.IsNullOrWhiteSpace(value))
+            throw new InvalidOperationException($"Missing or empty configuration: {key}");
+        return value;
+    }
 
     private sealed class GoogleTokenResponse
     {

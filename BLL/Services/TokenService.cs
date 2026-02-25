@@ -11,10 +11,15 @@ namespace BLL.Services;
 public sealed class TokenService : ITokenService
 {
     private readonly IConfiguration _configuration;
+    private readonly HashSet<string> _adminEmails;
 
     public TokenService(IConfiguration configuration)
     {
         _configuration = configuration;
+        _adminEmails = configuration.GetSection("AdminEmails")
+            .Get<string[]>()
+            ?.Select(e => e.Trim().ToLowerInvariant())
+            .ToHashSet() ?? new HashSet<string>();
     }
 
     public string CreateAccessToken(User user)
@@ -24,12 +29,14 @@ public sealed class TokenService : ITokenService
         var audience = _configuration["Jwt:Audience"];
         var expiresMinutes = int.TryParse(_configuration["Jwt:ExpiresMinutes"], out var m) ? m : 60;
 
+        var role = ResolveRole(user);
+
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new("provider", user.Provider ?? string.Empty),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(ClaimTypes.Role, role.ToString())
         };
 
         if (!string.IsNullOrWhiteSpace(user.Email))
@@ -48,5 +55,16 @@ public sealed class TokenService : ITokenService
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private UserRole ResolveRole(User user)
+    {
+        if (!string.IsNullOrWhiteSpace(user.Email)
+            && _adminEmails.Contains(user.Email.Trim().ToLowerInvariant()))
+        {
+            return UserRole.Admin;
+        }
+
+        return user.Role;
     }
 }

@@ -3,6 +3,7 @@ using System;
 using DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260222170915_AddOrderReviewPost")]
+    partial class AddOrderReviewPost
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,131 +24,6 @@ namespace DAL.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("DAL.Entity.Blog", b =>
-                {
-                    b.Property<int>("BlogId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("blog_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("BlogId"));
-
-                    b.Property<Guid>("AuthorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("author_id");
-
-                    b.Property<string>("Content")
-                        .HasColumnType("text")
-                        .HasColumnName("content");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("status");
-
-                    b.Property<string>("ThumbnailUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("thumbnail_url");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("title");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("BlogId");
-
-                    b.HasIndex("AuthorId")
-                        .HasDatabaseName("IX_Blogs_AuthorId");
-
-                    b.ToTable("Blogs");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Cart", b =>
-                {
-                    b.Property<int>("CartId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("cart_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CartId"));
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("status");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("total_amount");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("CartId");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_Carts_UserId");
-
-                    b.ToTable("Carts");
-                });
-
-            modelBuilder.Entity("DAL.Entity.CartItem", b =>
-                {
-                    b.Property<int>("CartItemId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("cart_item_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CartItemId"));
-
-                    b.Property<int>("CartId")
-                        .HasColumnType("integer")
-                        .HasColumnName("cart_id");
-
-                    b.Property<decimal>("PriceAtTime")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("price_at_time");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer")
-                        .HasColumnName("quantity");
-
-                    b.Property<decimal>("SubTotal")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("sub_total");
-
-                    b.Property<int>("VariantId")
-                        .HasColumnType("integer")
-                        .HasColumnName("variant_id");
-
-                    b.HasKey("CartItemId");
-
-                    b.HasIndex("CartId");
-
-                    b.HasIndex("VariantId");
-
-                    b.ToTable("CartItems");
-                });
 
             modelBuilder.Entity("DAL.Entity.Category", b =>
                 {
@@ -213,53 +91,6 @@ namespace DAL.Migrations
                     b.ToTable("EmailOtps");
                 });
 
-            modelBuilder.Entity("DAL.Entity.Notification", b =>
-                {
-                    b.Property<int>("NotificationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("notification_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotificationId"));
-
-                    b.Property<string>("Content")
-                        .HasColumnType("text")
-                        .HasColumnName("content");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_read");
-
-                    b.Property<string>("Title")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("title");
-
-                    b.Property<string>("Type")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("type");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("NotificationId");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_Notifications_UserId");
-
-                    b.ToTable("Notifications");
-                });
-
             modelBuilder.Entity("DAL.Entity.Order", b =>
                 {
                     b.Property<int>("OrderId")
@@ -269,30 +100,32 @@ namespace DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderId"));
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("discount_amount");
-
-                    b.Property<decimal>("FinalAmount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("final_amount");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("order_date");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("phone_number");
 
                     b.Property<string>("ShippingAddress")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("shipping_address");
-
-                    b.Property<decimal>("ShippingFee")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("shipping_fee");
 
                     b.Property<string>("Status")
                         .HasMaxLength(50)
@@ -303,14 +136,13 @@ namespace DAL.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("total_amount");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
-
-                    b.Property<string>("VnPayStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("vnpay_status");
 
                     b.HasKey("OrderId");
 
@@ -332,19 +164,23 @@ namespace DAL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("order_id");
 
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("price");
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer")
+                        .HasColumnName("product_id");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
-                    b.Property<decimal>("SubTotal")
+                    b.Property<decimal>("Subtotal")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("sub_total");
+                        .HasColumnName("subtotal");
 
-                    b.Property<int>("VariantId")
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("unit_price");
+
+                    b.Property<int?>("VariantId")
                         .HasColumnType("integer")
                         .HasColumnName("variant_id");
 
@@ -352,48 +188,11 @@ namespace DAL.Migrations
 
                     b.HasIndex("OrderId");
 
+                    b.HasIndex("ProductId");
+
                     b.HasIndex("VariantId");
 
                     b.ToTable("OrderDetails");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Payment", b =>
-                {
-                    b.Property<int>("PaymentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("payment_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PaymentId"));
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<int>("OrderId")
-                        .HasColumnType("integer")
-                        .HasColumnName("order_id");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("paid_at");
-
-                    b.Property<string>("PaymentMethod")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("payment_method");
-
-                    b.Property<string>("PaymentStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("payment_status");
-
-                    b.HasKey("PaymentId");
-
-                    b.HasIndex("OrderId")
-                        .HasDatabaseName("IX_Payments_OrderId");
-
-                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("DAL.Entity.PendingRegistration", b =>
@@ -435,6 +234,59 @@ namespace DAL.Migrations
                         .HasDatabaseName("IX_PendingRegistrations_Email");
 
                     b.ToTable("PendingRegistrations");
+                });
+
+            modelBuilder.Entity("DAL.Entity.Post", b =>
+                {
+                    b.Property<int>("PostId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("post_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PostId"));
+
+                    b.Property<Guid?>("AuthorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_id");
+
+                    b.Property<string>("Content")
+                        .HasColumnType("text")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("thumbnail_url");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("PostId");
+
+                    b.HasIndex("AuthorId")
+                        .HasDatabaseName("IX_Posts_AuthorId");
+
+                    b.ToTable("Posts");
                 });
 
             modelBuilder.Entity("DAL.Entity.Product", b =>
@@ -681,6 +533,10 @@ namespace DAL.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("status");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
@@ -693,54 +549,6 @@ namespace DAL.Migrations
                         .HasDatabaseName("IX_Reviews_UserId_ProductId");
 
                     b.ToTable("Reviews");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Transaction", b =>
-                {
-                    b.Property<int>("TransactionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("transaction_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TransactionId"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<string>("Gateway")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("gateway");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<int>("PaymentId")
-                        .HasColumnType("integer")
-                        .HasColumnName("payment_id");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("status");
-
-                    b.Property<string>("TransactionCode")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("transaction_code");
-
-                    b.Property<DateTime>("TransactionDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("transaction_date");
-
-                    b.HasKey("TransactionId");
-
-                    b.HasIndex("PaymentId")
-                        .HasDatabaseName("IX_Transactions_PaymentId");
-
-                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("DAL.Entity.User", b =>
@@ -790,159 +598,6 @@ namespace DAL.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("DAL.Entity.UserVoucher", b =>
-                {
-                    b.Property<int>("UserVoucherId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("user_voucher_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("UserVoucherId"));
-
-                    b.Property<bool>("IsUsed")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_used");
-
-                    b.Property<DateTime?>("UsedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("used_at");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.Property<int>("VoucherId")
-                        .HasColumnType("integer")
-                        .HasColumnName("voucher_id");
-
-                    b.HasKey("UserVoucherId");
-
-                    b.HasIndex("VoucherId");
-
-                    b.HasIndex("UserId", "VoucherId")
-                        .HasDatabaseName("IX_UserVouchers_UserId_VoucherId");
-
-                    b.ToTable("UserVouchers");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Voucher", b =>
-                {
-                    b.Property<int>("VoucherId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("voucher_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VoucherId"));
-
-                    b.Property<string>("Code")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("code");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
-
-                    b.Property<string>("DiscountType")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("discount_type");
-
-                    b.Property<decimal>("DiscountValue")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("discount_value");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("end_date");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<decimal>("MaxDiscount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("max_discount");
-
-                    b.Property<decimal>("MinOrderValue")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("min_order_value");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer")
-                        .HasColumnName("quantity");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("start_date");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("status");
-
-                    b.HasKey("VoucherId");
-
-                    b.HasIndex("Code")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Vouchers_Code");
-
-                    b.ToTable("Vouchers");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Blog", b =>
-                {
-                    b.HasOne("DAL.Entity.User", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Cart", b =>
-                {
-                    b.HasOne("DAL.Entity.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("DAL.Entity.CartItem", b =>
-                {
-                    b.HasOne("DAL.Entity.Cart", "Cart")
-                        .WithMany("CartItems")
-                        .HasForeignKey("CartId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DAL.Entity.ProductVariant", "ProductVariant")
-                        .WithMany()
-                        .HasForeignKey("VariantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cart");
-
-                    b.Navigation("ProductVariant");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Notification", b =>
-                {
-                    b.HasOne("DAL.Entity.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("DAL.Entity.Order", b =>
                 {
                     b.HasOne("DAL.Entity.User", "User")
@@ -962,26 +617,30 @@ namespace DAL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DAL.Entity.ProductVariant", "ProductVariant")
+                    b.HasOne("DAL.Entity.Product", "Product")
                         .WithMany()
-                        .HasForeignKey("VariantId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("DAL.Entity.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("VariantId");
+
                     b.Navigation("Order");
+
+                    b.Navigation("Product");
 
                     b.Navigation("ProductVariant");
                 });
 
-            modelBuilder.Entity("DAL.Entity.Payment", b =>
+            modelBuilder.Entity("DAL.Entity.Post", b =>
                 {
-                    b.HasOne("DAL.Entity.Order", "Order")
+                    b.HasOne("DAL.Entity.User", "Author")
                         .WithMany()
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("AuthorId");
 
-                    b.Navigation("Order");
+                    b.Navigation("Author");
                 });
 
             modelBuilder.Entity("DAL.Entity.Product", b =>
@@ -1038,41 +697,6 @@ namespace DAL.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Transaction", b =>
-                {
-                    b.HasOne("DAL.Entity.Payment", "Payment")
-                        .WithMany()
-                        .HasForeignKey("PaymentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Payment");
-                });
-
-            modelBuilder.Entity("DAL.Entity.UserVoucher", b =>
-                {
-                    b.HasOne("DAL.Entity.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DAL.Entity.Voucher", "Voucher")
-                        .WithMany()
-                        .HasForeignKey("VoucherId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-
-                    b.Navigation("Voucher");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Cart", b =>
-                {
-                    b.Navigation("CartItems");
                 });
 
             modelBuilder.Entity("DAL.Entity.Order", b =>
