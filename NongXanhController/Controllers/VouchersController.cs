@@ -86,12 +86,7 @@ public class VouchersController : BaseApiController
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
 
-        if (id != request.VoucherId)
-        {
-            return ErrorResponse<object>("Voucher ID mismatch");
-        }
-
-        await _service.UpdateAsync(request);
+        await _service.UpdateAsync(id, request);
         return SuccessResponse("Voucher updated successfully");
     }
 

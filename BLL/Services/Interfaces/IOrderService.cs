@@ -8,6 +8,6 @@ public interface IOrderService
     Task<PagedResult<OrderDto>> GetByUserIdAsync(Guid userId, int pageNumber, int pageSize);
     Task<OrderDto?> GetByIdAsync(int id);
     Task<OrderDto> CreateAsync(CreateOrderRequest request);
-    Task UpdateAsync(UpdateOrderRequest request);
+    Task UpdateAsync(int id, UpdateOrderRequest request);
     Task DeleteAsync(int id);
 }

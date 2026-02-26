@@ -9,6 +9,6 @@ public interface IProductService
     Task<PagedResult<Product>> GetPagedAsync(int pageNumber, int pageSize);
     Task<Product?> GetByIdAsync(int id);
     Task<Product> CreateAsync(CreateProductRequest request);
-    Task UpdateAsync(Product product);
+    Task UpdateAsync(int id, UpdateProductRequest request);
     Task DeleteAsync(int id);
 }

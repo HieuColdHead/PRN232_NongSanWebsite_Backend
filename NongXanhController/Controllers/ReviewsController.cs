@@ -78,11 +78,6 @@ public class ReviewsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutReview(int id, UpdateReviewRequest request)
     {
-        if (id != request.ReviewId)
-        {
-            return ErrorResponse<object>("Review ID mismatch");
-        }
-
         var existing = await _service.GetByIdAsync(id);
         if (existing == null)
         {
@@ -101,7 +96,7 @@ public class ReviewsController : BaseApiController
             request.Status = null;
         }
 
-        await _service.UpdateAsync(request);
+        await _service.UpdateAsync(id, request);
         return SuccessResponse("Review updated successfully");
     }
 

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace DAL.Entity;
 
@@ -20,9 +21,15 @@ public class Category
     [MaxLength(500)]
     public string? Description { get; set; }
 
+    [Column("parent_id")]
+    public int? ParentId { get; set; }
+
+    [ForeignKey("ParentId")]
+    [JsonIgnore]
+    public Category? Parent { get; set; }
+
+    public List<Category> Children { get; set; } = new();
+
     [Column("is_deleted")]
     public bool IsDeleted { get; set; } = false;
-
-    [NotMapped]
-    public List<string> Children { get; set; } = new List<string>();
 }

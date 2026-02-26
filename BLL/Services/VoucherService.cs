@@ -64,10 +64,10 @@ public class VoucherService : IVoucherService
         return MapToDto(voucher);
     }
 
-    public async Task UpdateAsync(UpdateVoucherRequest request)
+    public async Task UpdateAsync(int id, UpdateVoucherRequest request)
     {
-        var voucher = await _repository.GetByIdAsync(request.VoucherId)
-            ?? throw new KeyNotFoundException($"Voucher {request.VoucherId} not found");
+        var voucher = await _repository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Voucher {id} not found");
 
         if (request.Description != null) voucher.Description = request.Description;
         if (request.DiscountType != null) voucher.DiscountType = request.DiscountType;

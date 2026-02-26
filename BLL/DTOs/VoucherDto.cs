@@ -30,7 +30,6 @@ public class CreateVoucherRequest
 
 public class UpdateVoucherRequest
 {
-    public int VoucherId { get; set; }
     public string? Description { get; set; }
     public string? DiscountType { get; set; }
     public decimal DiscountValue { get; set; }

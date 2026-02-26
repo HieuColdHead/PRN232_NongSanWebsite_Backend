@@ -58,8 +58,22 @@ public class ProductService : IProductService
         return product;
     }
 
-    public async Task UpdateAsync(Product product)
+    public async Task UpdateAsync(int id, UpdateProductRequest request)
     {
+        var product = await _repository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Product {id} not found");
+
+        if (request.Name != null) product.ProductName = request.Name;
+        if (request.Description != null) product.Description = request.Description;
+        if (request.Origin != null) product.Origin = request.Origin;
+        if (request.Unit != null) product.Unit = request.Unit;
+        if (request.BasePrice.HasValue) product.BasePrice = request.BasePrice.Value;
+        if (request.IsOrganic.HasValue) product.IsOrganic = request.IsOrganic.Value;
+        if (request.Status != null) product.Status = request.Status;
+        if (request.CategoryId.HasValue) product.CategoryId = request.CategoryId.Value;
+        if (request.ProviderId.HasValue) product.ProviderId = request.ProviderId.Value;
+        product.UpdatedAt = DateTime.UtcNow;
+
         await _repository.UpdateAsync(product);
         await _repository.SaveChangesAsync();
     }

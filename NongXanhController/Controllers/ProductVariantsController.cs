@@ -52,19 +52,14 @@ public class ProductVariantsController : BaseApiController
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutProductVariant(int id, ProductVariant productVariant)
+    public async Task<ActionResult<ApiResponse<object>>> PutProductVariant(int id, UpdateProductVariantRequest request)
     {
         if (!IsAdmin())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
 
-        if (id != productVariant.VariantId)
-        {
-            return ErrorResponse<object>("Product variant ID mismatch");
-        }
-
-        await _service.UpdateAsync(productVariant);
+        await _service.UpdateAsync(id, request);
         return SuccessResponse("Product variant updated successfully");
     }
 

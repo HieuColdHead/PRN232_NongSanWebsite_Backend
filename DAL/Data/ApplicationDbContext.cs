@@ -73,6 +73,15 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.OtpHash).HasMaxLength(128);
         });
 
+        // ?? Category ??
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.HasOne(c => c.Parent)
+                .WithMany(c => c.Children)
+                .HasForeignKey(c => c.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         // ?? Provider ??
         modelBuilder.Entity<Provider>(entity =>
         {

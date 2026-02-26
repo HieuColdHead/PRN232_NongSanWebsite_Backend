@@ -69,10 +69,10 @@ public class ReviewService : IReviewService
         return MapToDto(review);
     }
 
-    public async Task UpdateAsync(UpdateReviewRequest request)
+    public async Task UpdateAsync(int id, UpdateReviewRequest request)
     {
-        var review = await _repository.GetByIdAsync(request.ReviewId)
-            ?? throw new KeyNotFoundException($"Review {request.ReviewId} not found");
+        var review = await _repository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Review {id} not found");
 
         review.Rating = request.Rating;
         review.Comment = request.Comment;

@@ -52,19 +52,14 @@ public class ProvidersController : BaseApiController
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutProvider(int id, Provider provider)
+    public async Task<ActionResult<ApiResponse<object>>> PutProvider(int id, UpdateProviderRequest request)
     {
         if (!IsAdmin())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
 
-        if (id != provider.ProviderId)
-        {
-            return ErrorResponse<object>("Provider ID mismatch");
-        }
-
-        await _service.UpdateAsync(provider);
+        await _service.UpdateAsync(id, request);
         return SuccessResponse("Provider updated successfully");
     }
 

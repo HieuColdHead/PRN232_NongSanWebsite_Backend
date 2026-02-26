@@ -57,19 +57,14 @@ public class ProductsController : BaseApiController
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutProduct(int id, Product product)
+    public async Task<ActionResult<ApiResponse<object>>> PutProduct(int id, UpdateProductRequest request)
     {
         if (!IsAdmin())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
 
-        if (id != product.ProductId)
-        {
-            return ErrorResponse<object>("Product ID mismatch");
-        }
-
-        await _service.UpdateAsync(product);
+        await _service.UpdateAsync(id, request);
 
         return SuccessResponse("Product updated successfully");
     }

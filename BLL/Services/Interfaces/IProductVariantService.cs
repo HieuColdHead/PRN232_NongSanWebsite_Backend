@@ -8,6 +8,6 @@ public interface IProductVariantService
     Task<IEnumerable<ProductVariant>> GetAllAsync();
     Task<ProductVariant?> GetByIdAsync(int id);
     Task<ProductVariant> CreateAsync(CreateProductVariantRequest request);
-    Task UpdateAsync(ProductVariant productVariant);
+    Task UpdateAsync(int id, UpdateProductVariantRequest request);
     Task DeleteAsync(int id);
 }

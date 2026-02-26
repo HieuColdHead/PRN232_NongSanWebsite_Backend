@@ -25,7 +25,6 @@ public class CreateOrderRequest
 
 public class UpdateOrderRequest
 {
-    public int OrderId { get; set; }
     public string? ShippingAddress { get; set; }
     public string? Status { get; set; }
     public string? VnPayStatus { get; set; }

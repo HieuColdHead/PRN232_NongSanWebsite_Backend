@@ -113,10 +113,10 @@ public class OrderService : IOrderService
         return await MapToDto(order);
     }
 
-    public async Task UpdateAsync(UpdateOrderRequest request)
+    public async Task UpdateAsync(int id, UpdateOrderRequest request)
     {
-        var order = await _orderRepository.GetByIdAsync(request.OrderId)
-            ?? throw new KeyNotFoundException($"Order {request.OrderId} not found");
+        var order = await _orderRepository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Order {id} not found");
 
         if (request.ShippingAddress != null)
             order.ShippingAddress = request.ShippingAddress;

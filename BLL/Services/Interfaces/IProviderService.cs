@@ -8,6 +8,6 @@ public interface IProviderService
     Task<IEnumerable<Provider>> GetAllAsync();
     Task<Provider?> GetByIdAsync(int id);
     Task<Provider> CreateAsync(CreateProviderRequest request);
-    Task UpdateAsync(Provider provider);
+    Task UpdateAsync(int id, UpdateProviderRequest request);
     Task DeleteAsync(int id);
 }

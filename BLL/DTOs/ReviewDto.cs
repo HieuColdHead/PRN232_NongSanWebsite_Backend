@@ -23,7 +23,6 @@ public class CreateReviewRequest
 
 public class UpdateReviewRequest
 {
-    public int ReviewId { get; set; }
     public int Rating { get; set; }
     public string? Comment { get; set; }
     public string? Status { get; set; }

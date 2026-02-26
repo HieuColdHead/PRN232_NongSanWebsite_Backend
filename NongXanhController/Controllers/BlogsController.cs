@@ -96,11 +96,6 @@ public class BlogsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutBlog(int id, UpdateBlogRequest request)
     {
-        if (id != request.BlogId)
-        {
-            return ErrorResponse<object>("Blog ID mismatch");
-        }
-
         var existing = await _service.GetByIdAsync(id);
         if (existing == null)
         {
@@ -113,7 +108,7 @@ public class BlogsController : BaseApiController
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
 
-        await _service.UpdateAsync(request);
+        await _service.UpdateAsync(id, request);
         return SuccessResponse("Blog updated successfully");
     }
 

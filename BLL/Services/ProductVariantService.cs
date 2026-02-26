@@ -41,9 +41,18 @@ public class ProductVariantService : IProductVariantService
         return variant;
     }
 
-    public async Task UpdateAsync(ProductVariant productVariant)
+    public async Task UpdateAsync(int id, UpdateProductVariantRequest request)
     {
-        await _repository.UpdateAsync(productVariant);
+        var variant = await _repository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"ProductVariant {id} not found");
+
+        if (request.Name != null) variant.VariantName = request.Name;
+        if (request.Price.HasValue) variant.Price = request.Price.Value;
+        if (request.StockQuantity.HasValue) variant.StockQuantity = request.StockQuantity.Value;
+        if (request.Sku != null) variant.Sku = request.Sku;
+        if (request.Status != null) variant.Status = request.Status;
+
+        await _repository.UpdateAsync(variant);
         await _repository.SaveChangesAsync();
     }
 

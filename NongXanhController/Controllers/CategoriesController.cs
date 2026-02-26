@@ -1,6 +1,5 @@
 ﻿using BLL.DTOs;
 using BLL.Services.Interfaces;
-using DAL.Entity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,7 +18,7 @@ public class CategoriesController : BaseApiController
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<IEnumerable<Category>>>> GetCategories()
+    public async Task<ActionResult<ApiResponse<IEnumerable<CategoryDto>>>> GetCategories()
     {
         var categories = await _service.GetAllAsync();
         return SuccessResponse(categories);
@@ -27,24 +26,24 @@ public class CategoriesController : BaseApiController
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<Category>>> GetCategory(int id)
+    public async Task<ActionResult<ApiResponse<CategoryDto>>> GetCategory(int id)
     {
         var category = await _service.GetByIdAsync(id);
 
         if (category == null)
         {
-            return ErrorResponse<Category>("Category not found", statusCode: 404);
+            return ErrorResponse<CategoryDto>("Category not found", statusCode: 404);
         }
 
         return SuccessResponse(category);
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<Category>>> PostCategory(CreateCategoryRequest request)
+    public async Task<ActionResult<ApiResponse<CategoryDto>>> PostCategory(CreateCategoryRequest request)
     {
         if (!IsAdmin())
         {
-            return ErrorResponse<Category>("Forbidden", statusCode: 403);
+            return ErrorResponse<CategoryDto>("Forbidden", statusCode: 403);
         }
 
         var category = await _service.CreateAsync(request);
@@ -52,19 +51,14 @@ public class CategoriesController : BaseApiController
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutCategory(int id, Category category)
+    public async Task<ActionResult<ApiResponse<object>>> PutCategory(int id, UpdateCategoryRequest request)
     {
         if (!IsAdmin())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
 
-        if (id != category.CategoryId)
-        {
-            return ErrorResponse<object>("Category ID mismatch");
-        }
-
-        await _service.UpdateAsync(category);
+        await _service.UpdateAsync(id, request);
         return SuccessResponse("Category updated successfully");
     }
 

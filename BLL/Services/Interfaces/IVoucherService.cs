@@ -8,6 +8,6 @@ public interface IVoucherService
     Task<VoucherDto?> GetByIdAsync(int id);
     Task<VoucherDto?> GetByCodeAsync(string code);
     Task<VoucherDto> CreateAsync(CreateVoucherRequest request);
-    Task UpdateAsync(UpdateVoucherRequest request);
+    Task UpdateAsync(int id, UpdateVoucherRequest request);
     Task DeleteAsync(int id);
 }

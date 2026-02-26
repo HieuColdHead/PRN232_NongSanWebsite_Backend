@@ -79,11 +79,6 @@ public class OrdersController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutOrder(int id, UpdateOrderRequest request)
     {
-        if (id != request.OrderId)
-        {
-            return ErrorResponse<object>("Order ID mismatch");
-        }
-
         var existing = await _service.GetByIdAsync(id);
         if (existing == null)
         {
@@ -103,7 +98,7 @@ public class OrdersController : BaseApiController
             request.VnPayStatus = null;
         }
 
-        await _service.UpdateAsync(request);
+        await _service.UpdateAsync(id, request);
         return SuccessResponse("Order updated successfully");
     }
 

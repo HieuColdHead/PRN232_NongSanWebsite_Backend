@@ -8,6 +8,6 @@ public interface IReviewService
     Task<ReviewDto?> GetByIdAsync(int id);
     Task<PagedResult<ReviewDto>> GetByProductIdAsync(int productId, int pageNumber, int pageSize);
     Task<ReviewDto> CreateAsync(CreateReviewRequest request);
-    Task UpdateAsync(UpdateReviewRequest request);
+    Task UpdateAsync(int id, UpdateReviewRequest request);
     Task DeleteAsync(int id);
 }

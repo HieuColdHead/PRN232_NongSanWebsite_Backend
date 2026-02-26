@@ -70,10 +70,10 @@ public class BlogService : IBlogService
         return MapToDto(blog);
     }
 
-    public async Task UpdateAsync(UpdateBlogRequest request)
+    public async Task UpdateAsync(int id, UpdateBlogRequest request)
     {
-        var blog = await _repository.GetByIdAsync(request.BlogId)
-            ?? throw new KeyNotFoundException($"Blog {request.BlogId} not found");
+        var blog = await _repository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Blog {id} not found");
 
         if (request.Title != null) blog.Title = request.Title;
         if (request.Content != null) blog.Content = request.Content;

@@ -42,8 +42,19 @@ public class ProviderService : IProviderService
         return provider;
     }
 
-    public async Task UpdateAsync(Provider provider)
+    public async Task UpdateAsync(int id, UpdateProviderRequest request)
     {
+        var provider = await _repository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Provider {id} not found");
+
+        if (request.Name != null) provider.ProviderName = request.Name;
+        if (request.Description != null) provider.Description = request.Description;
+        if (request.Address != null) provider.Address = request.Address;
+        if (request.Phone != null) provider.Phone = request.Phone;
+        if (request.Email != null) provider.Email = request.Email;
+        if (request.RatingAverage.HasValue) provider.RatingAverage = request.RatingAverage;
+        if (request.Status != null) provider.Status = request.Status;
+
         await _repository.UpdateAsync(provider);
         await _repository.SaveChangesAsync();
     }
