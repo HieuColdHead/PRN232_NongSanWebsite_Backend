@@ -26,8 +26,7 @@ namespace DAL.Migrations
                 type: "uuid",
                 nullable: false,
                 oldClrType: typeof(int),
-                oldType: "integer")
-                .OldAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "integer");
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "product_id",
@@ -43,8 +42,7 @@ namespace DAL.Migrations
                 type: "uuid",
                 nullable: false,
                 oldClrType: typeof(int),
-                oldType: "integer")
-                .OldAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "integer");
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "provider_id",
@@ -70,8 +68,7 @@ namespace DAL.Migrations
                 type: "uuid",
                 nullable: false,
                 oldClrType: typeof(int),
-                oldType: "integer")
-                .OldAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "integer");
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "product_id",
@@ -87,8 +84,7 @@ namespace DAL.Migrations
                 type: "uuid",
                 nullable: false,
                 oldClrType: typeof(int),
-                oldType: "integer")
-                .OldAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "integer");
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "variant_id",
@@ -113,8 +109,7 @@ namespace DAL.Migrations
                 type: "uuid",
                 nullable: false,
                 oldClrType: typeof(int),
-                oldType: "integer")
-                .OldAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "integer");
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "variant_id",
@@ -142,8 +137,7 @@ namespace DAL.Migrations
                 type: "integer",
                 nullable: false,
                 oldClrType: typeof(Guid),
-                oldType: "uuid")
-                .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "uuid");
 
             migrationBuilder.AlterColumn<int>(
                 name: "product_id",
@@ -159,8 +153,7 @@ namespace DAL.Migrations
                 type: "integer",
                 nullable: false,
                 oldClrType: typeof(Guid),
-                oldType: "uuid")
-                .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "uuid");
 
             migrationBuilder.AlterColumn<int>(
                 name: "provider_id",
@@ -186,8 +179,7 @@ namespace DAL.Migrations
                 type: "integer",
                 nullable: false,
                 oldClrType: typeof(Guid),
-                oldType: "uuid")
-                .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "uuid");
 
             migrationBuilder.AlterColumn<int>(
                 name: "product_id",
@@ -203,8 +195,7 @@ namespace DAL.Migrations
                 type: "integer",
                 nullable: false,
                 oldClrType: typeof(Guid),
-                oldType: "uuid")
-                .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "uuid");
 
             migrationBuilder.AlterColumn<int>(
                 name: "variant_id",
@@ -229,8 +220,7 @@ namespace DAL.Migrations
                 type: "integer",
                 nullable: false,
                 oldClrType: typeof(Guid),
-                oldType: "uuid")
-                .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                oldType: "uuid");
 
             migrationBuilder.AlterColumn<int>(
                 name: "variant_id",
