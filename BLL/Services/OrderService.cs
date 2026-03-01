@@ -64,7 +64,7 @@ public class OrderService : IOrderService
         };
     }
 
-    public async Task<OrderDto?> GetByIdAsync(int id)
+    public async Task<OrderDto?> GetByIdAsync(Guid id)
     {
         var order = await _orderRepository.GetByIdAsync(id);
         if (order == null) return null;
@@ -113,7 +113,7 @@ public class OrderService : IOrderService
         return await MapToDto(order);
     }
 
-    public async Task UpdateAsync(int id, UpdateOrderRequest request)
+    public async Task UpdateAsync(Guid id, UpdateOrderRequest request)
     {
         var order = await _orderRepository.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Order {id} not found");
@@ -129,7 +129,7 @@ public class OrderService : IOrderService
         await _orderRepository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Guid id)
     {
         await _orderRepository.DeleteAsync(id);
         await _orderRepository.SaveChangesAsync();
@@ -142,6 +142,7 @@ public class OrderService : IOrderService
         return new OrderDto
         {
             OrderId = order.OrderId,
+            OrderNumber = order.OrderNumber,
             OrderDate = order.OrderDate,
             TotalAmount = order.TotalAmount,
             ShippingFee = order.ShippingFee,

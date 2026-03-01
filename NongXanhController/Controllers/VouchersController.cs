@@ -34,7 +34,7 @@ public class VouchersController : BaseApiController
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<VoucherDto>>> GetVoucher(int id)
+    public async Task<ActionResult<ApiResponse<VoucherDto>>> GetVoucher(Guid id)
     {
         var voucher = await _service.GetByIdAsync(id);
 
@@ -79,7 +79,7 @@ public class VouchersController : BaseApiController
     /// Admin only: update a voucher.
     /// </summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutVoucher(int id, UpdateVoucherRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> PutVoucher(Guid id, UpdateVoucherRequest request)
     {
         if (!IsAdmin())
         {
@@ -94,7 +94,7 @@ public class VouchersController : BaseApiController
     /// Admin only: delete a voucher.
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteVoucher(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteVoucher(Guid id)
     {
         if (!IsAdmin())
         {

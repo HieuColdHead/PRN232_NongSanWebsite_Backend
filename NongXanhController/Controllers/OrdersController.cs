@@ -41,7 +41,7 @@ public class OrdersController : BaseApiController
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ApiResponse<OrderDto>>> GetOrder(int id)
+    public async Task<ActionResult<ApiResponse<OrderDto>>> GetOrder(Guid id)
     {
         var order = await _service.GetByIdAsync(id);
 
@@ -77,7 +77,7 @@ public class OrdersController : BaseApiController
     /// Admin can update any order. Normal user can only update shipping address of their own pending orders.
     /// </summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutOrder(int id, UpdateOrderRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> PutOrder(Guid id, UpdateOrderRequest request)
     {
         var existing = await _service.GetByIdAsync(id);
         if (existing == null)
@@ -103,7 +103,7 @@ public class OrdersController : BaseApiController
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteOrder(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteOrder(Guid id)
     {
         if (!IsAdmin())
         {

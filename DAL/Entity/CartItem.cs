@@ -9,7 +9,7 @@ public class CartItem
 {
     [Key]
     [Column("cart_item_id")]
-    public int CartItemId { get; set; }
+    public Guid CartItemId { get; set; } = Guid.NewGuid();
 
     [Column("quantity")]
     public int Quantity { get; set; }
@@ -21,7 +21,7 @@ public class CartItem
     public decimal SubTotal { get; set; }
 
     [Column("cart_id")]
-    public int CartId { get; set; }
+    public Guid CartId { get; set; }
 
     [ForeignKey("CartId")]
     [JsonIgnore]

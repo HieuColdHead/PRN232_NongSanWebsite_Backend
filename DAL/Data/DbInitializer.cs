@@ -19,10 +19,12 @@ public static class DbInitializer
             await context.Database.MigrateAsync();
 
             // Fix PostgreSQL sequences if they are out of sync
+            // Only for tables that still use integer identity columns
             await ResetSequenceAsync(context, "Categories", "category_id");
             await ResetSequenceAsync(context, "Providers", "provider_id");
             await ResetSequenceAsync(context, "Products", "product_id");
             await ResetSequenceAsync(context, "ProductVariants", "variant_id");
+            await ResetSequenceAsync(context, "ProductImages", "image_id");
 
             // Seed Admin User
             var adminEmail = "admin@nongxanh.com";

@@ -2,7 +2,7 @@ namespace BLL.DTOs;
 
 public class BlogDto
 {
-    public int BlogId { get; set; }
+    public Guid BlogId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Content { get; set; }
     public string? ThumbnailUrl { get; set; }

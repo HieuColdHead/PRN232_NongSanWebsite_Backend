@@ -5,9 +5,9 @@ namespace BLL.Services.Interfaces;
 public interface IVoucherService
 {
     Task<PagedResult<VoucherDto>> GetPagedAsync(int pageNumber, int pageSize);
-    Task<VoucherDto?> GetByIdAsync(int id);
+    Task<VoucherDto?> GetByIdAsync(Guid id);
     Task<VoucherDto?> GetByCodeAsync(string code);
     Task<VoucherDto> CreateAsync(CreateVoucherRequest request);
-    Task UpdateAsync(int id, UpdateVoucherRequest request);
-    Task DeleteAsync(int id);
+    Task UpdateAsync(Guid id, UpdateVoucherRequest request);
+    Task DeleteAsync(Guid id);
 }

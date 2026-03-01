@@ -27,7 +27,7 @@ public class VoucherService : IVoucherService
         };
     }
 
-    public async Task<VoucherDto?> GetByIdAsync(int id)
+    public async Task<VoucherDto?> GetByIdAsync(Guid id)
     {
         var voucher = await _repository.GetByIdAsync(id);
         if (voucher == null) return null;
@@ -64,7 +64,7 @@ public class VoucherService : IVoucherService
         return MapToDto(voucher);
     }
 
-    public async Task UpdateAsync(int id, UpdateVoucherRequest request)
+    public async Task UpdateAsync(Guid id, UpdateVoucherRequest request)
     {
         var voucher = await _repository.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Voucher {id} not found");
@@ -83,7 +83,7 @@ public class VoucherService : IVoucherService
         await _repository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);
         await _repository.SaveChangesAsync();

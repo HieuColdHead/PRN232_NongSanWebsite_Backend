@@ -8,7 +8,7 @@ public class Cart
 {
     [Key]
     [Column("cart_id")]
-    public int CartId { get; set; }
+    public Guid CartId { get; set; } = Guid.NewGuid();
 
     [Column("total_amount")]
     public decimal TotalAmount { get; set; }

@@ -103,7 +103,7 @@ public class CartService : ICartService
         return await MapToDto(cart);
     }
 
-    public async Task RemoveItemAsync(Guid userId, int cartItemId)
+    public async Task RemoveItemAsync(Guid userId, Guid cartItemId)
     {
         var carts = await _cartRepository.FindAsync(c => c.UserId == userId && c.Status == "Active");
         var cart = carts.FirstOrDefault()

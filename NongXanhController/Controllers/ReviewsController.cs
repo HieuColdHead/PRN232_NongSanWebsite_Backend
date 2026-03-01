@@ -31,7 +31,7 @@ public class ReviewsController : BaseApiController
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<ReviewDto>>> GetReview(int id)
+    public async Task<ActionResult<ApiResponse<ReviewDto>>> GetReview(Guid id)
     {
         var review = await _service.GetByIdAsync(id);
 
@@ -76,7 +76,7 @@ public class ReviewsController : BaseApiController
     /// Owner can update their own review. Admin can update any review (e.g. change status).
     /// </summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutReview(int id, UpdateReviewRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> PutReview(Guid id, UpdateReviewRequest request)
     {
         var existing = await _service.GetByIdAsync(id);
         if (existing == null)
@@ -104,7 +104,7 @@ public class ReviewsController : BaseApiController
     /// Owner can delete their own review. Admin can delete any review.
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteReview(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteReview(Guid id)
     {
         var existing = await _service.GetByIdAsync(id);
         if (existing == null)

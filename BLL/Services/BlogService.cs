@@ -27,7 +27,7 @@ public class BlogService : IBlogService
         };
     }
 
-    public async Task<BlogDto?> GetByIdAsync(int id)
+    public async Task<BlogDto?> GetByIdAsync(Guid id)
     {
         var blog = await _repository.GetByIdAsync(id);
         if (blog == null) return null;
@@ -70,7 +70,7 @@ public class BlogService : IBlogService
         return MapToDto(blog);
     }
 
-    public async Task UpdateAsync(int id, UpdateBlogRequest request)
+    public async Task UpdateAsync(Guid id, UpdateBlogRequest request)
     {
         var blog = await _repository.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Blog {id} not found");
@@ -85,7 +85,7 @@ public class BlogService : IBlogService
         await _repository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);
         await _repository.SaveChangesAsync();

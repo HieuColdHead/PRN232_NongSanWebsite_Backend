@@ -107,6 +107,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.ShippingFee).HasColumnType("decimal(18,2)");
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
             entity.Property(e => e.FinalAmount).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.OrderNumber).HasMaxLength(7);
         });
 
         // ?? OrderDetail ??

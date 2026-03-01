@@ -8,7 +8,7 @@ public class Blog
 {
     [Key]
     [Column("blog_id")]
-    public int BlogId { get; set; }
+    public Guid BlogId { get; set; } = Guid.NewGuid();
 
     [Required]
     [Column("title")]

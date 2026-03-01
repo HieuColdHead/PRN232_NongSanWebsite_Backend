@@ -31,7 +31,7 @@ public class BlogsController : BaseApiController
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<BlogDto>>> GetBlog(int id)
+    public async Task<ActionResult<ApiResponse<BlogDto>>> GetBlog(Guid id)
     {
         var blog = await _service.GetByIdAsync(id);
 
@@ -94,7 +94,7 @@ public class BlogsController : BaseApiController
     /// Author can update their own blog. Admin can update any blog.
     /// </summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutBlog(int id, UpdateBlogRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> PutBlog(Guid id, UpdateBlogRequest request)
     {
         var existing = await _service.GetByIdAsync(id);
         if (existing == null)
@@ -116,7 +116,7 @@ public class BlogsController : BaseApiController
     /// Author can delete their own blog. Admin can delete any blog.
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteBlog(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteBlog(Guid id)
     {
         var existing = await _service.GetByIdAsync(id);
         if (existing == null)

@@ -51,7 +51,7 @@ public class NotificationsController : BaseApiController
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ApiResponse<NotificationDto>>> GetNotification(int id)
+    public async Task<ActionResult<ApiResponse<NotificationDto>>> GetNotification(Guid id)
     {
         var notification = await _service.GetByIdAsync(id);
 
@@ -86,7 +86,7 @@ public class NotificationsController : BaseApiController
     }
 
     [HttpPatch("{id}/read")]
-    public async Task<ActionResult<ApiResponse<object>>> MarkAsRead(int id)
+    public async Task<ActionResult<ApiResponse<object>>> MarkAsRead(Guid id)
     {
         var notification = await _service.GetByIdAsync(id);
         if (notification == null)
@@ -106,7 +106,7 @@ public class NotificationsController : BaseApiController
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteNotification(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteNotification(Guid id)
     {
         if (!IsAdmin())
         {

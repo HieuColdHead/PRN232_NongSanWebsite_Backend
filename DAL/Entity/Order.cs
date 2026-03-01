@@ -8,7 +8,11 @@ public class Order
 {
     [Key]
     [Column("order_id")]
-    public int OrderId { get; set; }
+    public Guid OrderId { get; set; } = Guid.NewGuid();
+
+    [Column("order_number")]
+    [MaxLength(7)]
+    public string OrderNumber { get; set; } = new Random().Next(1000000, 9999999).ToString();
 
     [Column("order_date")]
     public DateTime OrderDate { get; set; } = DateTime.UtcNow;

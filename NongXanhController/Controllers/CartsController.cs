@@ -53,7 +53,7 @@ public class CartsController : BaseApiController
     }
 
     [HttpDelete("items/{cartItemId}")]
-    public async Task<ActionResult<ApiResponse<object>>> RemoveItem(int cartItemId)
+    public async Task<ActionResult<ApiResponse<object>>> RemoveItem(Guid cartItemId)
     {
         var userId = GetCurrentUserId();
         if (userId is null) return ErrorResponse<object>("Unauthorized", statusCode: 401);

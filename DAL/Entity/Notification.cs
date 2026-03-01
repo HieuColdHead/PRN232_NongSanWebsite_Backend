@@ -8,7 +8,7 @@ public class Notification
 {
     [Key]
     [Column("notification_id")]
-    public int NotificationId { get; set; }
+    public Guid NotificationId { get; set; } = Guid.NewGuid();
 
     [Column("title")]
     [MaxLength(255)]

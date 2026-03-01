@@ -8,7 +8,7 @@ public class Payment
 {
     [Key]
     [Column("payment_id")]
-    public int PaymentId { get; set; }
+    public Guid PaymentId { get; set; } = Guid.NewGuid();
 
     [Column("payment_method")]
     [MaxLength(50)]
@@ -22,7 +22,7 @@ public class Payment
     public DateTime? PaidAt { get; set; }
 
     [Column("order_id")]
-    public int OrderId { get; set; }
+    public Guid OrderId { get; set; }
 
     [ForeignKey("OrderId")]
     public Order? Order { get; set; }

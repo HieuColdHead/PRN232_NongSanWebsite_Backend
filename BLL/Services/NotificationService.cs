@@ -32,7 +32,7 @@ public class NotificationService : INotificationService
         };
     }
 
-    public async Task<NotificationDto?> GetByIdAsync(int id)
+    public async Task<NotificationDto?> GetByIdAsync(Guid id)
     {
         var notification = await _repository.GetByIdAsync(id);
         if (notification == null) return null;
@@ -57,7 +57,7 @@ public class NotificationService : INotificationService
         return MapToDto(notification);
     }
 
-    public async Task MarkAsReadAsync(int id)
+    public async Task MarkAsReadAsync(Guid id)
     {
         var notification = await _repository.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Notification {id} not found");
@@ -67,7 +67,7 @@ public class NotificationService : INotificationService
         await _repository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);
         await _repository.SaveChangesAsync();

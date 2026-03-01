@@ -8,7 +8,7 @@ public class Review
 {
     [Key]
     [Column("review_id")]
-    public int ReviewId { get; set; }
+    public Guid ReviewId { get; set; } = Guid.NewGuid();
 
     [Column("rating")]
     public int Rating { get; set; }

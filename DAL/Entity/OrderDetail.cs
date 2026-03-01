@@ -9,7 +9,7 @@ public class OrderDetail
 {
     [Key]
     [Column("order_detail_id")]
-    public int OrderDetailId { get; set; }
+    public Guid OrderDetailId { get; set; } = Guid.NewGuid();
 
     [Column("quantity")]
     public int Quantity { get; set; }
@@ -21,7 +21,7 @@ public class OrderDetail
     public decimal SubTotal { get; set; }
 
     [Column("order_id")]
-    public int OrderId { get; set; }
+    public Guid OrderId { get; set; }
 
     [ForeignKey("OrderId")]
     [JsonIgnore]

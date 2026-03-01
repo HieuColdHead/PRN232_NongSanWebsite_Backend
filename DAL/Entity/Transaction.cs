@@ -8,7 +8,7 @@ public class Transaction
 {
     [Key]
     [Column("transaction_id")]
-    public int TransactionId { get; set; }
+    public Guid TransactionId { get; set; } = Guid.NewGuid();
 
     [Column("transaction_code")]
     [MaxLength(100)]
@@ -29,7 +29,7 @@ public class Transaction
     public string? Status { get; set; }
 
     [Column("payment_id")]
-    public int PaymentId { get; set; }
+    public Guid PaymentId { get; set; }
 
     [ForeignKey("PaymentId")]
     public Payment? Payment { get; set; }

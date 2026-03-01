@@ -14,7 +14,7 @@ public class PaymentService : IPaymentService
         _repository = repository;
     }
 
-    public async Task<PaymentDto?> GetByOrderIdAsync(int orderId)
+    public async Task<PaymentDto?> GetByOrderIdAsync(Guid orderId)
     {
         var payments = await _repository.FindAsync(p => p.OrderId == orderId);
         var payment = payments.FirstOrDefault();
@@ -37,7 +37,7 @@ public class PaymentService : IPaymentService
         return MapToDto(payment);
     }
 
-    public async Task<PaymentDto> UpdateStatusAsync(int paymentId, string status)
+    public async Task<PaymentDto> UpdateStatusAsync(Guid paymentId, string status)
     {
         var payment = await _repository.GetByIdAsync(paymentId)
             ?? throw new KeyNotFoundException($"Payment {paymentId} not found");

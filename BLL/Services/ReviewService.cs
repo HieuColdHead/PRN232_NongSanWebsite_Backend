@@ -27,7 +27,7 @@ public class ReviewService : IReviewService
         };
     }
 
-    public async Task<ReviewDto?> GetByIdAsync(int id)
+    public async Task<ReviewDto?> GetByIdAsync(Guid id)
     {
         var review = await _repository.GetByIdAsync(id);
         if (review == null) return null;
@@ -69,7 +69,7 @@ public class ReviewService : IReviewService
         return MapToDto(review);
     }
 
-    public async Task UpdateAsync(int id, UpdateReviewRequest request)
+    public async Task UpdateAsync(Guid id, UpdateReviewRequest request)
     {
         var review = await _repository.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Review {id} not found");
@@ -83,7 +83,7 @@ public class ReviewService : IReviewService
         await _repository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);
         await _repository.SaveChangesAsync();

@@ -8,7 +8,7 @@ public class Voucher
 {
     [Key]
     [Column("voucher_id")]
-    public int VoucherId { get; set; }
+    public Guid VoucherId { get; set; } = Guid.NewGuid();
 
     [Column("code")]
     [MaxLength(100)]

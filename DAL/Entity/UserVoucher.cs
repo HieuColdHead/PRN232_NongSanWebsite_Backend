@@ -8,7 +8,7 @@ public class UserVoucher
 {
     [Key]
     [Column("user_voucher_id")]
-    public int UserVoucherId { get; set; }
+    public Guid UserVoucherId { get; set; } = Guid.NewGuid();
 
     [Column("is_used")]
     public bool IsUsed { get; set; } = false;
@@ -23,7 +23,7 @@ public class UserVoucher
     public User? User { get; set; }
 
     [Column("voucher_id")]
-    public int VoucherId { get; set; }
+    public Guid VoucherId { get; set; }
 
     [ForeignKey("VoucherId")]
     public Voucher? Voucher { get; set; }

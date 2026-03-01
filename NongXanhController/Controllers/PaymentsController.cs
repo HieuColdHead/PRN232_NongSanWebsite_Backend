@@ -19,7 +19,7 @@ public class PaymentsController : BaseApiController
     }
 
     [HttpGet("order/{orderId}")]
-    public async Task<ActionResult<ApiResponse<PaymentDto>>> GetByOrder(int orderId)
+    public async Task<ActionResult<ApiResponse<PaymentDto>>> GetByOrder(Guid orderId)
     {
         // Verify the user owns this order (or is admin)
         var order = await _orderService.GetByIdAsync(orderId);
@@ -68,7 +68,7 @@ public class PaymentsController : BaseApiController
     /// Admin only: update payment status.
     /// </summary>
     [HttpPatch("{id}/status")]
-    public async Task<ActionResult<ApiResponse<PaymentDto>>> UpdateStatus(int id, [FromBody] string status)
+    public async Task<ActionResult<ApiResponse<PaymentDto>>> UpdateStatus(Guid id, [FromBody] string status)
     {
         if (!IsAdmin())
         {
