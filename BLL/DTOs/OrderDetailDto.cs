@@ -9,6 +9,13 @@ public class OrderDetailDto
     public Guid OrderId { get; set; }
     public int VariantId { get; set; }
     public string? VariantName { get; set; }
+
+    // Product information
+    public int ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public string? ProductImageUrl { get; set; }
+    public string? Unit { get; set; }
+    public string? Origin { get; set; }
 }
 
 public class CreateOrderDetailRequest

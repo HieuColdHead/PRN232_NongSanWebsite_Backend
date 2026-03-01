@@ -1,7 +1,9 @@
 using BLL.DTOs;
 using BLL.Services.Interfaces;
 using DAL.Entity;
+using DAL.Data;
 using DAL.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace BLL.Services;
 
@@ -10,15 +12,18 @@ public class OrderService : IOrderService
     private readonly IGenericRepository<Order> _orderRepository;
     private readonly IGenericRepository<OrderDetail> _orderDetailRepository;
     private readonly IGenericRepository<ProductVariant> _variantRepository;
+    private readonly ApplicationDbContext _context;
 
     public OrderService(
         IGenericRepository<Order> orderRepository,
         IGenericRepository<OrderDetail> orderDetailRepository,
-        IGenericRepository<ProductVariant> variantRepository)
+        IGenericRepository<ProductVariant> variantRepository,
+        ApplicationDbContext context)
     {
         _orderRepository = orderRepository;
         _orderDetailRepository = orderDetailRepository;
         _variantRepository = variantRepository;
+        _context = context;
     }
 
     public async Task<PagedResult<OrderDto>> GetPagedAsync(int pageNumber, int pageSize)
@@ -137,7 +142,13 @@ public class OrderService : IOrderService
 
     private async Task<OrderDto> MapToDto(Order order)
     {
-        var orderDetails = await _orderDetailRepository.FindAsync(d => d.OrderId == order.OrderId);
+        // Load order details with ProductVariant -> Product -> ProductImages
+        var orderDetails = await _context.Set<OrderDetail>()
+            .Where(d => d.OrderId == order.OrderId)
+            .Include(d => d.ProductVariant!)
+                .ThenInclude(v => v.Product!)
+                    .ThenInclude(p => p.ProductImages)
+            .ToListAsync();
 
         return new OrderDto
         {
@@ -160,7 +171,14 @@ public class OrderService : IOrderService
                 SubTotal = d.SubTotal,
                 OrderId = d.OrderId,
                 VariantId = d.VariantId,
-                VariantName = d.ProductVariant?.VariantName
+                VariantName = d.ProductVariant?.VariantName,
+                ProductId = d.ProductVariant?.ProductId ?? 0,
+                ProductName = d.ProductVariant?.Product?.ProductName,
+                ProductImageUrl = d.ProductVariant?.Product?.ProductImages
+                    ?.FirstOrDefault(img => img.IsPrimary)?.ImageUrl
+                    ?? d.ProductVariant?.Product?.ProductImages?.FirstOrDefault()?.ImageUrl,
+                Unit = d.ProductVariant?.Product?.Unit,
+                Origin = d.ProductVariant?.Product?.Origin
             }).ToList()
         };
     }
