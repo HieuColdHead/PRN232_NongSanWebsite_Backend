@@ -18,5 +18,5 @@ public class CreateProductVariantRequest
     [MaxLength(50)]
     public string? Status { get; set; }
 
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
 }

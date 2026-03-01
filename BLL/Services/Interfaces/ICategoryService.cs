@@ -5,8 +5,8 @@ namespace BLL.Services.Interfaces;
 public interface ICategoryService
 {
     Task<IEnumerable<CategoryDto>> GetAllAsync();
-    Task<CategoryDto?> GetByIdAsync(int id);
+    Task<CategoryDto?> GetByIdAsync(Guid id);
     Task<CategoryDto> CreateAsync(CreateCategoryRequest request);
-    Task UpdateAsync(int id, UpdateCategoryRequest request);
-    Task DeleteAsync(int id);
+    Task UpdateAsync(Guid id, UpdateCategoryRequest request);
+    Task DeleteAsync(Guid id);
 }

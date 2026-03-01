@@ -19,7 +19,7 @@ public class ProductVariantService : IProductVariantService
         return _repository.GetAllAsync();
     }
 
-    public Task<ProductVariant?> GetByIdAsync(int id)
+    public Task<ProductVariant?> GetByIdAsync(Guid id)
     {
         return _repository.GetByIdAsync(id);
     }
@@ -28,6 +28,7 @@ public class ProductVariantService : IProductVariantService
     {
         var variant = new ProductVariant
         {
+            VariantId = Guid.NewGuid(),
             VariantName = request.Name,
             Price = request.Price,
             StockQuantity = request.StockQuantity,
@@ -41,7 +42,7 @@ public class ProductVariantService : IProductVariantService
         return variant;
     }
 
-    public async Task UpdateAsync(int id, UpdateProductVariantRequest request)
+    public async Task UpdateAsync(Guid id, UpdateProductVariantRequest request)
     {
         var variant = await _repository.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"ProductVariant {id} not found");
@@ -56,7 +57,7 @@ public class ProductVariantService : IProductVariantService
         await _repository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);
         await _repository.SaveChangesAsync();

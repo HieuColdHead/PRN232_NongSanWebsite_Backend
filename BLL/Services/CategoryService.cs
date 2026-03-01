@@ -26,7 +26,7 @@ public class CategoryService : ICategoryService
         return roots.Select(r => MapToDto(r, lookup));
     }
 
-    public async Task<CategoryDto?> GetByIdAsync(int id)
+    public async Task<CategoryDto?> GetByIdAsync(Guid id)
     {
         var category = await _repository.GetByIdAsync(id);
         if (category == null) return null;
@@ -42,39 +42,27 @@ public class CategoryService : ICategoryService
     {
         var category = new Category
         {
+            CategoryId = Guid.NewGuid(),
             CategoryName = request.Name,
-            Description = request.Description
+            Description = request.Description,
+            ParentId = request.ParentId
         };
 
         await _repository.AddAsync(category);
         await _repository.SaveChangesAsync();
 
-        // Create children under this parent
-        if (request.Children.Count > 0)
-        {
-            foreach (var childName in request.Children)
-            {
-                var child = new Category
-                {
-                    CategoryName = childName,
-                    ParentId = category.CategoryId
-                };
-                await _repository.AddAsync(child);
-            }
-            await _repository.SaveChangesAsync();
-        }
-
         // Reload with children
         return (await GetByIdAsync(category.CategoryId))!;
     }
 
-    public async Task UpdateAsync(int id, UpdateCategoryRequest request)
+    public async Task UpdateAsync(Guid id, UpdateCategoryRequest request)
     {
         var category = await _repository.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Category {id} not found");
 
         if (request.Name != null) category.CategoryName = request.Name;
         if (request.Description != null) category.Description = request.Description;
+        if (request.ParentId.HasValue) category.ParentId = request.ParentId.Value;
 
         await _repository.UpdateAsync(category);
 
@@ -82,31 +70,32 @@ public class CategoryService : ICategoryService
         if (request.Children != null)
         {
             var existingChildren = (await _repository.FindAsync(c => c.ParentId == id)).ToList();
-            var existingNames = existingChildren.Select(c => c.CategoryName).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var requestedNames = request.Children.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var existingChildIds = existingChildren.Select(c => c.CategoryId).ToHashSet();
+            var requestedChildIds = request.Children.ToHashSet();
 
             // Add new children
-            foreach (var name in request.Children.Where(n => !existingNames.Contains(n)))
+            foreach (var childId in requestedChildIds.Where(childId => !existingChildIds.Contains(childId)))
             {
-                var child = new Category
+                var child = await _repository.GetByIdAsync(childId);
+                if (child != null)
                 {
-                    CategoryName = name,
-                    ParentId = id
-                };
-                await _repository.AddAsync(child);
+                    child.ParentId = id;
+                    await _repository.UpdateAsync(child);
+                }
             }
 
-            // Soft-delete removed children
-            foreach (var child in existingChildren.Where(c => !requestedNames.Contains(c.CategoryName)))
+            // Remove children that are no longer associated
+            foreach (var child in existingChildren.Where(c => !requestedChildIds.Contains(c.CategoryId)))
             {
-                await _repository.DeleteAsync(child.CategoryId);
+                child.ParentId = null; // Or handle as needed, e.g., soft delete
+                await _repository.UpdateAsync(child);
             }
         }
 
         await _repository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Guid id)
     {
         // Also soft-delete all children
         var children = await _repository.FindAsync(c => c.ParentId == id);
@@ -119,7 +108,7 @@ public class CategoryService : ICategoryService
         await _repository.SaveChangesAsync();
     }
 
-    private static CategoryDto MapToDto(Category category, ILookup<int?, Category>? childLookup = null)
+    private static CategoryDto MapToDto(Category category, ILookup<Guid?, Category>? childLookup = null)
     {
         var dto = new CategoryDto
         {

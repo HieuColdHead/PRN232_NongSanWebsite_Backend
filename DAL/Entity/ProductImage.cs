@@ -9,7 +9,7 @@ public class ProductImage
 {
     [Key]
     [Column("image_id")]
-    public int ImageId { get; set; }
+    public Guid ImageId { get; set; }
 
     [Column("image_url")]
     [MaxLength(500)]
@@ -22,7 +22,7 @@ public class ProductImage
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [Column("product_id")]
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
 
     [ForeignKey("ProductId")]
     [JsonIgnore]

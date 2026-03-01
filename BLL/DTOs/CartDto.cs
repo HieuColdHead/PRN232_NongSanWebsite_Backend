@@ -11,7 +11,7 @@ public class CartDto
 
 public class AddCartItemRequest
 {
-    public int VariantId { get; set; }
+    public Guid VariantId { get; set; }
     public int Quantity { get; set; }
 }
 

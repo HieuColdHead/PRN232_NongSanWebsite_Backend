@@ -6,8 +6,8 @@ namespace BLL.Services.Interfaces;
 public interface IProductVariantService
 {
     Task<IEnumerable<ProductVariant>> GetAllAsync();
-    Task<ProductVariant?> GetByIdAsync(int id);
+    Task<ProductVariant?> GetByIdAsync(Guid id);
     Task<ProductVariant> CreateAsync(CreateProductVariantRequest request);
-    Task UpdateAsync(int id, UpdateProductVariantRequest request);
-    Task DeleteAsync(int id);
+    Task UpdateAsync(Guid id, UpdateProductVariantRequest request);
+    Task DeleteAsync(Guid id);
 }

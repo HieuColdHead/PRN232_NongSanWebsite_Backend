@@ -7,6 +7,6 @@ public class CartItemDto
     public decimal PriceAtTime { get; set; }
     public decimal SubTotal { get; set; }
     public Guid CartId { get; set; }
-    public int VariantId { get; set; }
+    public Guid VariantId { get; set; }
     public string? VariantName { get; set; }
 }

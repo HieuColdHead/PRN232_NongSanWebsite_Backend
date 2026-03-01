@@ -11,5 +11,7 @@ public class CreateCategoryRequest
     [MaxLength(500)]
     public string? Description { get; set; }
 
-    public List<string> Children { get; set; } = new List<string>();
+    public Guid? ParentId { get; set; }
+
+    public List<Guid> Children { get; set; } = new List<Guid>();
 }

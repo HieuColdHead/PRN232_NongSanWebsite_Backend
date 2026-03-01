@@ -93,9 +93,9 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
              var query = _dbSet.AsQueryable();
              query = query.Include("ProductImages");
              
-             if (id is int productId)
+             if (id is Guid productId)
              {
-                 entity = await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "ProductId") == productId);
+                 entity = await query.FirstOrDefaultAsync(e => EF.Property<Guid>(e, "ProductId") == productId);
              }
              else
              {

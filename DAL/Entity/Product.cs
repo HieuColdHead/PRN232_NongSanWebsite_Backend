@@ -7,9 +7,8 @@ namespace DAL.Entity;
 public class Product
 {
     [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("product_id")]
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
 
     [Required]
     [Column("product_name")]
@@ -44,13 +43,13 @@ public class Product
     public DateTime? UpdatedAt { get; set; }
 
     [Column("category_id")]
-    public int? CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
 
     [ForeignKey("CategoryId")]
     public Category? Category { get; set; }
 
     [Column("provider_id")]
-    public int? ProviderId { get; set; }
+    public Guid? ProviderId { get; set; }
 
     [ForeignKey("ProviderId")]
     public Provider? Provider { get; set; }

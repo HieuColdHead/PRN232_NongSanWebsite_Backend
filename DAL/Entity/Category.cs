@@ -8,9 +8,8 @@ namespace DAL.Entity;
 public class Category
 {
     [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("category_id")]
-    public int CategoryId { get; set; }
+    public Guid CategoryId { get; set; }
 
     [Required]
     [Column("category_name")]
@@ -22,7 +21,7 @@ public class Category
     public string? Description { get; set; }
 
     [Column("parent_id")]
-    public int? ParentId { get; set; }
+    public Guid? ParentId { get; set; }
 
     [ForeignKey("ParentId")]
     [JsonIgnore]

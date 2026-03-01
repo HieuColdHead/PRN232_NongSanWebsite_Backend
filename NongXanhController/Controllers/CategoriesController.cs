@@ -26,7 +26,7 @@ public class CategoriesController : BaseApiController
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<CategoryDto>>> GetCategory(int id)
+    public async Task<ActionResult<ApiResponse<CategoryDto>>> GetCategory(Guid id)
     {
         var category = await _service.GetByIdAsync(id);
 
@@ -51,7 +51,7 @@ public class CategoriesController : BaseApiController
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutCategory(int id, UpdateCategoryRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> PutCategory(Guid id, UpdateCategoryRequest request)
     {
         if (!IsAdmin())
         {
@@ -63,7 +63,7 @@ public class CategoriesController : BaseApiController
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteCategory(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteCategory(Guid id)
     {
         if (!IsAdmin())
         {

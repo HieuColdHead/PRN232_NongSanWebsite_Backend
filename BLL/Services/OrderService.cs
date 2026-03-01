@@ -172,7 +172,7 @@ public class OrderService : IOrderService
                 OrderId = d.OrderId,
                 VariantId = d.VariantId,
                 VariantName = d.ProductVariant?.VariantName,
-                ProductId = d.ProductVariant?.ProductId ?? 0,
+                ProductId = d.ProductVariant?.ProductId ?? Guid.Empty,
                 ProductName = d.ProductVariant?.Product?.ProductName,
                 ProductImageUrl = d.ProductVariant?.Product?.ProductImages
                     ?.FirstOrDefault(img => img.IsPrimary)?.ImageUrl

@@ -6,8 +6,8 @@ namespace BLL.Services.Interfaces;
 public interface IProviderService
 {
     Task<IEnumerable<Provider>> GetAllAsync();
-    Task<Provider?> GetByIdAsync(int id);
+    Task<Provider?> GetByIdAsync(Guid id);
     Task<Provider> CreateAsync(CreateProviderRequest request);
-    Task UpdateAsync(int id, UpdateProviderRequest request);
-    Task DeleteAsync(int id);
+    Task UpdateAsync(Guid id, UpdateProviderRequest request);
+    Task DeleteAsync(Guid id);
 }

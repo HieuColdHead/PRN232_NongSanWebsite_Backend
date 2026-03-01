@@ -23,7 +23,7 @@ public class CreateProductRequest
     [MaxLength(50)]
     public string? Status { get; set; }
 
-    public int? CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
 
-    public int? ProviderId { get; set; }
+    public Guid? ProviderId { get; set; }
 }

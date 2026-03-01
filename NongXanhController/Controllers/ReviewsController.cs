@@ -45,7 +45,7 @@ public class ReviewsController : BaseApiController
 
     [HttpGet("product/{productId}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<PagedResult<ReviewDto>>>> GetByProduct(int productId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<ApiResponse<PagedResult<ReviewDto>>>> GetByProduct(Guid productId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1 || pageSize < 1)
         {

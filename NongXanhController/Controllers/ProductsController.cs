@@ -32,7 +32,7 @@ public class ProductsController : BaseApiController
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<Product>>> GetProduct(int id)
+    public async Task<ActionResult<ApiResponse<Product>>> GetProduct(Guid id)
     {
         var product = await _service.GetByIdAsync(id);
 
@@ -57,7 +57,7 @@ public class ProductsController : BaseApiController
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutProduct(int id, UpdateProductRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> PutProduct(Guid id, UpdateProductRequest request)
     {
         if (!IsAdmin())
         {
@@ -70,7 +70,7 @@ public class ProductsController : BaseApiController
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteProduct(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteProduct(Guid id)
     {
         if (!IsAdmin())
         {

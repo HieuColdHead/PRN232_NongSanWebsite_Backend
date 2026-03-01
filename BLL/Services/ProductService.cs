@@ -32,7 +32,7 @@ public class ProductService : IProductService
         };
     }
 
-    public Task<Product?> GetByIdAsync(int id)
+    public Task<Product?> GetByIdAsync(Guid id)
     {
         return _repository.GetByIdAsync(id);
     }
@@ -41,6 +41,7 @@ public class ProductService : IProductService
     {
         var product = new Product
         {
+            ProductId = Guid.NewGuid(),
             ProductName = request.Name,
             Description = request.Description,
             Origin = request.Origin,
@@ -58,7 +59,7 @@ public class ProductService : IProductService
         return product;
     }
 
-    public async Task UpdateAsync(int id, UpdateProductRequest request)
+    public async Task UpdateAsync(Guid id, UpdateProductRequest request)
     {
         var product = await _repository.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Product {id} not found");
@@ -78,7 +79,7 @@ public class ProductService : IProductService
         await _repository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);
         await _repository.SaveChangesAsync();

@@ -28,7 +28,7 @@ public class OrderDetail
     public Order? Order { get; set; }
 
     [Column("variant_id")]
-    public int VariantId { get; set; }
+    public Guid VariantId { get; set; }
 
     [ForeignKey("VariantId")]
     public ProductVariant? ProductVariant { get; set; }

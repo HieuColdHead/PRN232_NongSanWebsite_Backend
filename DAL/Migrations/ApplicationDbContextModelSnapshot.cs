@@ -128,8 +128,8 @@ namespace DAL.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("sub_total");
 
-                    b.Property<int>("VariantId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("VariantId")
+                        .HasColumnType("uuid")
                         .HasColumnName("variant_id");
 
                     b.HasKey("CartItemId");
@@ -143,12 +143,10 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Entity.Category", b =>
                 {
-                    b.Property<int>("CategoryId")
+                    b.Property<Guid>("CategoryId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("uuid")
                         .HasColumnName("category_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CategoryId"));
 
                     b.Property<string>("CategoryName")
                         .IsRequired()
@@ -165,8 +163,8 @@ namespace DAL.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
-                    b.Property<int?>("ParentId")
-                        .HasColumnType("integer")
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
                         .HasColumnName("parent_id");
 
                     b.HasKey("CategoryId");
@@ -339,8 +337,8 @@ namespace DAL.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("sub_total");
 
-                    b.Property<int>("VariantId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("VariantId")
+                        .HasColumnType("uuid")
                         .HasColumnName("variant_id");
 
                     b.HasKey("OrderDetailId");
@@ -432,19 +430,17 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Entity.Product", b =>
                 {
-                    b.Property<int>("ProductId")
+                    b.Property<Guid>("ProductId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("uuid")
                         .HasColumnName("product_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductId"));
 
                     b.Property<decimal>("BasePrice")
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("base_price");
 
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("integer")
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid")
                         .HasColumnName("category_id");
 
                     b.Property<DateTime>("CreatedAt")
@@ -474,8 +470,8 @@ namespace DAL.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("product_name");
 
-                    b.Property<int?>("ProviderId")
-                        .HasColumnType("integer")
+                    b.Property<Guid?>("ProviderId")
+                        .HasColumnType("uuid")
                         .HasColumnName("provider_id");
 
                     b.Property<string>("Status")
@@ -503,12 +499,10 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Entity.ProductImage", b =>
                 {
-                    b.Property<int>("ImageId")
+                    b.Property<Guid>("ImageId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("uuid")
                         .HasColumnName("image_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ImageId"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -523,8 +517,8 @@ namespace DAL.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_primary");
 
-                    b.Property<int>("ProductId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
                         .HasColumnName("product_id");
 
                     b.HasKey("ImageId");
@@ -536,12 +530,10 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Entity.ProductVariant", b =>
                 {
-                    b.Property<int>("VariantId")
+                    b.Property<Guid>("VariantId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("uuid")
                         .HasColumnName("variant_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VariantId"));
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
@@ -551,8 +543,8 @@ namespace DAL.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("price");
 
-                    b.Property<int>("ProductId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
                         .HasColumnName("product_id");
 
                     b.Property<string>("Sku")
@@ -584,12 +576,10 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Entity.Provider", b =>
                 {
-                    b.Property<int>("ProviderId")
+                    b.Property<Guid>("ProviderId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("uuid")
                         .HasColumnName("provider_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProviderId"));
 
                     b.Property<string>("Address")
                         .HasMaxLength(255)
@@ -659,8 +649,8 @@ namespace DAL.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
-                    b.Property<int>("ProductId")
-                        .HasColumnType("integer")
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
                         .HasColumnName("product_id");
 
                     b.Property<int>("Rating")

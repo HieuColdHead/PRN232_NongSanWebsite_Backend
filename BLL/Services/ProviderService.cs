@@ -19,7 +19,7 @@ public class ProviderService : IProviderService
         return _repository.GetAllAsync();
     }
 
-    public Task<Provider?> GetByIdAsync(int id)
+    public Task<Provider?> GetByIdAsync(Guid id)
     {
         return _repository.GetByIdAsync(id);
     }
@@ -28,6 +28,7 @@ public class ProviderService : IProviderService
     {
         var provider = new Provider
         {
+            ProviderId = Guid.NewGuid(),
             ProviderName = request.Name,
             Description = request.Description,
             Address = request.Address,
@@ -42,7 +43,7 @@ public class ProviderService : IProviderService
         return provider;
     }
 
-    public async Task UpdateAsync(int id, UpdateProviderRequest request)
+    public async Task UpdateAsync(Guid id, UpdateProviderRequest request)
     {
         var provider = await _repository.GetByIdAsync(id)
             ?? throw new KeyNotFoundException($"Provider {id} not found");
@@ -59,7 +60,7 @@ public class ProviderService : IProviderService
         await _repository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);
         await _repository.SaveChangesAsync();

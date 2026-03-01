@@ -7,9 +7,8 @@ namespace DAL.Entity;
 public class Provider
 {
     [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("provider_id")]
-    public int ProviderId { get; set; }
+    public Guid ProviderId { get; set; }
 
     [Required]
     [Column("provider_name")]

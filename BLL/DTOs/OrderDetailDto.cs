@@ -7,11 +7,11 @@ public class OrderDetailDto
     public decimal Price { get; set; }
     public decimal SubTotal { get; set; }
     public Guid OrderId { get; set; }
-    public int VariantId { get; set; }
+    public Guid VariantId { get; set; }
     public string? VariantName { get; set; }
 
     // Product information
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
     public string? ProductName { get; set; }
     public string? ProductImageUrl { get; set; }
     public string? Unit { get; set; }
@@ -20,6 +20,6 @@ public class OrderDetailDto
 
 public class CreateOrderDetailRequest
 {
-    public int VariantId { get; set; }
+    public Guid VariantId { get; set; }
     public int Quantity { get; set; }
 }

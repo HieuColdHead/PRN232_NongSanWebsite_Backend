@@ -31,7 +31,7 @@ public class Review
     public User? User { get; set; }
 
     [Column("product_id")]
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
 
     [ForeignKey("ProductId")]
     public Product? Product { get; set; }

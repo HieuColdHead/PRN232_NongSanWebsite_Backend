@@ -27,7 +27,7 @@ public class ProductVariantsController : BaseApiController
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<ProductVariant>>> GetProductVariant(int id)
+    public async Task<ActionResult<ApiResponse<ProductVariant>>> GetProductVariant(Guid id)
     {
         var productVariant = await _service.GetByIdAsync(id);
 
@@ -52,7 +52,7 @@ public class ProductVariantsController : BaseApiController
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutProductVariant(int id, UpdateProductVariantRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> PutProductVariant(Guid id, UpdateProductVariantRequest request)
     {
         if (!IsAdmin())
         {
@@ -64,7 +64,7 @@ public class ProductVariantsController : BaseApiController
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteProductVariant(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteProductVariant(Guid id)
     {
         if (!IsAdmin())
         {

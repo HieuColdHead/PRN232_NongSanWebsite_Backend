@@ -27,7 +27,7 @@ public class ProvidersController : BaseApiController
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<Provider>>> GetProvider(int id)
+    public async Task<ActionResult<ApiResponse<Provider>>> GetProvider(Guid id)
     {
         var provider = await _service.GetByIdAsync(id);
 
@@ -52,7 +52,7 @@ public class ProvidersController : BaseApiController
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> PutProvider(int id, UpdateProviderRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> PutProvider(Guid id, UpdateProviderRequest request)
     {
         if (!IsAdmin())
         {
@@ -64,7 +64,7 @@ public class ProvidersController : BaseApiController
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteProvider(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteProvider(Guid id)
     {
         if (!IsAdmin())
         {

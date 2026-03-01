@@ -7,8 +7,8 @@ public interface IProductService
 {
     Task<IEnumerable<Product>> GetAllAsync();
     Task<PagedResult<Product>> GetPagedAsync(int pageNumber, int pageSize);
-    Task<Product?> GetByIdAsync(int id);
+    Task<Product?> GetByIdAsync(Guid id);
     Task<Product> CreateAsync(CreateProductRequest request);
-    Task UpdateAsync(int id, UpdateProductRequest request);
-    Task DeleteAsync(int id);
+    Task UpdateAsync(Guid id, UpdateProductRequest request);
+    Task DeleteAsync(Guid id);
 }

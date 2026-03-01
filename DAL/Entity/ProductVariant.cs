@@ -7,9 +7,8 @@ namespace DAL.Entity;
 public class ProductVariant
 {
     [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("variant_id")]
-    public int VariantId { get; set; }
+    public Guid VariantId { get; set; }
 
     [Required]
     [Column("variant_name")]
@@ -31,7 +30,7 @@ public class ProductVariant
     public string? Status { get; set; }
 
     [Column("product_id")]
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
 
     [ForeignKey("ProductId")]
     public Product? Product { get; set; }

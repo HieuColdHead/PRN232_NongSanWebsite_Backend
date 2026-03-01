@@ -34,7 +34,7 @@ public class ReviewService : IReviewService
         return MapToDto(review);
     }
 
-    public async Task<PagedResult<ReviewDto>> GetByProductIdAsync(int productId, int pageNumber, int pageSize)
+    public async Task<PagedResult<ReviewDto>> GetByProductIdAsync(Guid productId, int pageNumber, int pageSize)
     {
         var all = await _repository.FindAsync(r => r.ProductId == productId);
         var totalCount = all.Count();
