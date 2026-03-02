@@ -19,11 +19,11 @@ public class ProductsController : BaseApiController
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<PagedResult<Product>>>> GetProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<ApiResponse<PagedResult<ProductDto>>>> GetProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1 || pageSize < 1)
         {
-            return ErrorResponse<PagedResult<Product>>("Page number and page size must be greater than 0.");
+            return ErrorResponse<PagedResult<ProductDto>>("Page number and page size must be greater than 0.");
         }
 
         var result = await _service.GetPagedAsync(pageNumber, pageSize);
@@ -32,24 +32,24 @@ public class ProductsController : BaseApiController
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<Product>>> GetProduct(Guid id)
+    public async Task<ActionResult<ApiResponse<ProductDto>>> GetProduct(Guid id)
     {
         var product = await _service.GetByIdAsync(id);
 
         if (product == null)
         {
-            return ErrorResponse<Product>("Product not found", statusCode: 404);
+            return ErrorResponse<ProductDto>("Product not found", statusCode: 404);
         }
 
         return SuccessResponse(product);
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<Product>>> PostProduct(CreateProductRequest request)
+    public async Task<ActionResult<ApiResponse<ProductDto>>> PostProduct(CreateProductRequest request)
     {
         if (!IsAdmin())
         {
-            return ErrorResponse<Product>("Forbidden", statusCode: 403);
+            return ErrorResponse<ProductDto>("Forbidden", statusCode: 403);
         }
 
         var product = await _service.CreateAsync(request);

@@ -5,10 +5,10 @@ namespace BLL.Services.Interfaces;
 
 public interface IProductService
 {
-    Task<IEnumerable<Product>> GetAllAsync();
-    Task<PagedResult<Product>> GetPagedAsync(int pageNumber, int pageSize);
-    Task<Product?> GetByIdAsync(Guid id);
-    Task<Product> CreateAsync(CreateProductRequest request);
+    Task<IEnumerable<ProductDto>> GetAllAsync();
+    Task<PagedResult<ProductDto>> GetPagedAsync(int pageNumber, int pageSize);
+    Task<ProductDto?> GetByIdAsync(Guid id);
+    Task<ProductDto> CreateAsync(CreateProductRequest request);
     Task UpdateAsync(Guid id, UpdateProductRequest request);
     Task DeleteAsync(Guid id);
 }

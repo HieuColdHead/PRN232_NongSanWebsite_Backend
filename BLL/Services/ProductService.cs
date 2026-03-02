@@ -8,36 +8,53 @@ namespace BLL.Services;
 public class ProductService : IProductService
 {
     private readonly IGenericRepository<Product> _repository;
+    private readonly IGenericRepository<Category> _categoryRepository;
+    private readonly IGenericRepository<Provider> _providerRepository;
 
-    public ProductService(IGenericRepository<Product> repository)
+    public ProductService(IGenericRepository<Product> repository, IGenericRepository<Category> categoryRepository, IGenericRepository<Provider> providerRepository)
     {
         _repository = repository;
+        _categoryRepository = categoryRepository;
+        _providerRepository = providerRepository;
     }
 
-    public Task<IEnumerable<Product>> GetAllAsync()
+    public async Task<IEnumerable<ProductDto>> GetAllAsync()
     {
-        return _repository.GetAllAsync();
+        var products = await _repository.GetAllAsync();
+        var dtos = new List<ProductDto>();
+        foreach (var product in products)
+        {
+            dtos.Add(await MapToDto(product));
+        }
+        return dtos;
     }
 
-    public async Task<PagedResult<Product>> GetPagedAsync(int pageNumber, int pageSize)
+    public async Task<PagedResult<ProductDto>> GetPagedAsync(int pageNumber, int pageSize)
     {
         var (items, totalCount) = await _repository.GetPagedAsync(pageNumber, pageSize);
-        
-        return new PagedResult<Product>
+        var dtos = new List<ProductDto>();
+        foreach (var item in items)
         {
-            Items = items,
+            dtos.Add(await MapToDto(item));
+        }
+        
+        return new PagedResult<ProductDto>
+        {
+            Items = dtos,
             TotalCount = totalCount,
             PageNumber = pageNumber,
             PageSize = pageSize
         };
     }
 
-    public Task<Product?> GetByIdAsync(Guid id)
+    public async Task<ProductDto?> GetByIdAsync(Guid id)
     {
-        return _repository.GetByIdAsync(id);
+        var product = await _repository.GetByIdAsync(id);
+        if (product == null) return null;
+        return await MapToDto(product);
     }
 
-    public async Task<Product> CreateAsync(CreateProductRequest request)
+    public async Task<ProductDto> CreateAsync(CreateProductRequest request)
     {
         var product = new Product
         {
@@ -56,7 +73,7 @@ public class ProductService : IProductService
 
         await _repository.AddAsync(product);
         await _repository.SaveChangesAsync();
-        return product;
+        return (await MapToDto(product));
     }
 
     public async Task UpdateAsync(Guid id, UpdateProductRequest request)
@@ -83,5 +100,37 @@ public class ProductService : IProductService
     {
         await _repository.DeleteAsync(id);
         await _repository.SaveChangesAsync();
+    }
+
+    private async Task<ProductDto> MapToDto(Product product)
+    {
+        var category = product.CategoryId.HasValue ? await _categoryRepository.GetByIdAsync(product.CategoryId.Value) : null;
+        var provider = product.ProviderId.HasValue ? await _providerRepository.GetByIdAsync(product.ProviderId.Value) : null;
+
+        return new ProductDto
+        {
+            ProductId = product.ProductId,
+            ProductName = product.ProductName,
+            Description = product.Description,
+            Origin = product.Origin,
+            Unit = product.Unit,
+            BasePrice = product.BasePrice,
+            IsOrganic = product.IsOrganic,
+            Status = product.Status,
+            CreatedAt = product.CreatedAt,
+            UpdatedAt = product.UpdatedAt,
+            CategoryId = product.CategoryId,
+            CategoryName = category?.CategoryName,
+            ProviderId = product.ProviderId,
+            ProviderName = provider?.ProviderName,
+            IsDeleted = product.IsDeleted,
+            ProductImages = product.ProductImages.Select(pi => new ProductImageDto
+            {
+                ImageId = pi.ImageId,
+                ImageUrl = pi.ImageUrl,
+                IsPrimary = pi.IsPrimary,
+                ProductId = product.ProductId
+            }).ToList()
+        };
     }
 }
