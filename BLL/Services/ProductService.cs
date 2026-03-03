@@ -10,12 +10,16 @@ public class ProductService : IProductService
     private readonly IGenericRepository<Product> _repository;
     private readonly IGenericRepository<Category> _categoryRepository;
     private readonly IGenericRepository<Provider> _providerRepository;
+    private readonly IGenericRepository<ProductImage> _productImageRepository;
+    private readonly IGenericRepository<ProductVariant> _productVariantRepository;
 
-    public ProductService(IGenericRepository<Product> repository, IGenericRepository<Category> categoryRepository, IGenericRepository<Provider> providerRepository)
+    public ProductService(IGenericRepository<Product> repository, IGenericRepository<Category> categoryRepository, IGenericRepository<Provider> providerRepository, IGenericRepository<ProductImage> productImageRepository, IGenericRepository<ProductVariant> productVariantRepository)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
         _providerRepository = providerRepository;
+        _productImageRepository = productImageRepository;
+        _productVariantRepository = productVariantRepository;
     }
 
     public async Task<IEnumerable<ProductDto>> GetAllAsync()
@@ -71,6 +75,37 @@ public class ProductService : IProductService
             CreatedAt = DateTime.UtcNow
         };
 
+        if (request.Images != null)
+        {
+            foreach (var image in request.Images)
+            {
+                product.ProductImages.Add(new ProductImage
+                {
+                    ImageId = Guid.NewGuid(),
+                    ImageUrl = image.ImageUrl,
+                    IsPrimary = image.IsPrimary,
+                    ProductId = product.ProductId
+                });
+            }
+        }
+
+        if (request.Variants != null)
+        {
+            foreach (var variant in request.Variants)
+            {
+                product.ProductVariants.Add(new ProductVariant
+                {
+                    VariantId = Guid.NewGuid(),
+                    VariantName = variant.VariantName,
+                    Price = variant.Price,
+                    StockQuantity = variant.StockQuantity,
+                    Sku = variant.Sku,
+                    Status = variant.Status,
+                    ProductId = product.ProductId
+                });
+            }
+        }
+
         await _repository.AddAsync(product);
         await _repository.SaveChangesAsync();
         return (await MapToDto(product));
@@ -91,6 +126,43 @@ public class ProductService : IProductService
         if (request.CategoryId.HasValue) product.CategoryId = request.CategoryId.Value;
         if (request.ProviderId.HasValue) product.ProviderId = request.ProviderId.Value;
         product.UpdatedAt = DateTime.UtcNow;
+
+        if (request.Images != null)
+        {
+            // For simplicity, we'll clear and add new images.
+            // A more sophisticated approach would be to update existing images.
+            product.ProductImages.Clear();
+            foreach (var image in request.Images)
+            {
+                product.ProductImages.Add(new ProductImage
+                {
+                    ImageId = Guid.NewGuid(),
+                    ImageUrl = image.ImageUrl,
+                    IsPrimary = image.IsPrimary,
+                    ProductId = product.ProductId
+                });
+            }
+        }
+
+        if (request.Variants != null)
+        {
+            // For simplicity, we'll clear and add new variants.
+            // A more sophisticated approach would be to update existing variants.
+            product.ProductVariants.Clear();
+            foreach (var variant in request.Variants)
+            {
+                product.ProductVariants.Add(new ProductVariant
+                {
+                    VariantId = Guid.NewGuid(),
+                    VariantName = variant.VariantName,
+                    Price = variant.Price,
+                    StockQuantity = variant.StockQuantity,
+                    Sku = variant.Sku,
+                    Status = variant.Status,
+                    ProductId = product.ProductId
+                });
+            }
+        }
 
         await _repository.UpdateAsync(product);
         await _repository.SaveChangesAsync();
@@ -129,6 +201,16 @@ public class ProductService : IProductService
                 ImageId = pi.ImageId,
                 ImageUrl = pi.ImageUrl,
                 IsPrimary = pi.IsPrimary,
+                ProductId = product.ProductId
+            }).ToList(),
+            ProductVariants = product.ProductVariants.Select(pv => new ProductVariantDto
+            {
+                VariantId = pv.VariantId,
+                VariantName = pv.VariantName,
+                Price = pv.Price,
+                StockQuantity = pv.StockQuantity,
+                Sku = pv.Sku,
+                Status = pv.Status,
                 ProductId = product.ProductId
             }).ToList()
         };

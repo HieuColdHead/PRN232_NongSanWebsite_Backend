@@ -21,6 +21,7 @@ public class ProductDto
     public string? ProviderName { get; set; }
     public bool IsDeleted { get; set; }
     public List<ProductImageDto> ProductImages { get; set; } = new();
+    public List<ProductVariantDto> ProductVariants { get; set; } = new();
 }
 
 public class ProductImageDto
