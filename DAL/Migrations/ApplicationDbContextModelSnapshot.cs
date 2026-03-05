@@ -199,7 +199,16 @@ namespace DAL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("Purpose")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.HasIndex("Email", "ExpiresAt");
 
@@ -917,6 +926,15 @@ namespace DAL.Migrations
                     b.Navigation("Parent");
                 });
 
+            modelBuilder.Entity("DAL.Entity.EmailOtp", b =>
+                {
+                    b.HasOne("DAL.Entity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DAL.Entity.Notification", b =>
                 {
                     b.HasOne("DAL.Entity.User", "User")
@@ -998,7 +1016,7 @@ namespace DAL.Migrations
             modelBuilder.Entity("DAL.Entity.ProductVariant", b =>
                 {
                     b.HasOne("DAL.Entity.Product", "Product")
-                        .WithMany()
+                        .WithMany("ProductVariants")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1073,6 +1091,8 @@ namespace DAL.Migrations
             modelBuilder.Entity("DAL.Entity.Product", b =>
                 {
                     b.Navigation("ProductImages");
+
+                    b.Navigation("ProductVariants");
                 });
 #pragma warning restore 612, 618
         }

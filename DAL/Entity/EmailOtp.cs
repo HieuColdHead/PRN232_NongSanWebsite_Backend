@@ -23,4 +23,12 @@ public class EmailOtp
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? ConsumedAt { get; set; }
+
+    [MaxLength(50)]
+    public string? Purpose { get; set; }
+
+    public Guid? UserId { get; set; }
+
+    [ForeignKey("UserId")]
+    public User? User { get; set; }
 }

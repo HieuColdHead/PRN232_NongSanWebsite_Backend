@@ -18,19 +18,22 @@ public class AuthController : ControllerBase
     private readonly ILocalAuthService _localAuthService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ApplicationDbContext _dbContext;
+    private readonly IUserService _userService;
 
     public AuthController(
         IGoogleOAuthService googleOAuthService,
         IEmailOtpService emailOtpService,
         ILocalAuthService localAuthService,
         IPasswordHasher passwordHasher,
-        ApplicationDbContext dbContext)
+        ApplicationDbContext dbContext,
+        IUserService userService)
     {
         _googleOAuthService = googleOAuthService;
         _emailOtpService = emailOtpService;
         _localAuthService = localAuthService;
         _passwordHasher = passwordHasher;
         _dbContext = dbContext;
+        _userService = userService;
     }
 
     [HttpGet("google/start")]
@@ -178,5 +181,37 @@ public class AuthController : ControllerBase
 
         var result = await _localAuthService.LoginAsync(request);
         return Ok(result);
+    }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _userService.ForgotPassword(request.Email);
+        if (result)
+        {
+            return Ok("Password reset link sent to your email.");
+        }
+        return BadRequest("Error sending password reset email.");
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _userService.ResetPassword(request.Email, request.Token, request.NewPassword);
+        if (result)
+        {
+            return Ok("Password reset successful.");
+        }
+        return BadRequest("Invalid token or email.");
     }
 }

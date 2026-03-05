@@ -25,21 +25,21 @@ public class UserRepository : IUserRepository
         return _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
-    public Task AddAsync(User user)
+    public async Task AddAsync(User user)
     {
         _dbContext.Users.Add(user);
-        return Task.CompletedTask;
+        await _dbContext.SaveChangesAsync();
     }
 
-    public Task UpdateAsync(User user)
+    public async Task UpdateAsync(User user)
     {
         _dbContext.Users.Update(user);
-        return Task.CompletedTask;
+        await _dbContext.SaveChangesAsync();
     }
 
-    public Task SaveChangesAsync()
+    public async Task SaveChangesAsync()
     {
-        return _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
     }
 
     public async Task<(IEnumerable<User> Users, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize)
