@@ -68,8 +68,19 @@ public class ReviewsController : BaseApiController
         // Always assign UserId from JWT, ignore any value from request body
         request.UserId = userId.Value;
 
-        var review = await _service.CreateAsync(request);
-        return SuccessResponse(review, "Review created successfully");
+        try
+        {
+            var review = await _service.CreateAsync(request);
+            return SuccessResponse(review, "Review created successfully");
+        }
+        catch (ArgumentException ex)
+        {
+            return ErrorResponse<ReviewDto>(ex.Message, statusCode: 400);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<ReviewDto>(ex.Message, statusCode: 400);
+        }
     }
 
     /// <summary>

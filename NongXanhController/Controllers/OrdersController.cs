@@ -10,10 +10,12 @@ namespace NongXanhController.Controllers;
 public class OrdersController : BaseApiController
 {
     private readonly IOrderService _service;
+    private readonly IPaymentService _paymentService;
 
-    public OrdersController(IOrderService service)
+    public OrdersController(IOrderService service, IPaymentService paymentService)
     {
         _service = service;
+        _paymentService = paymentService;
     }
 
     /// <summary>
@@ -71,6 +73,77 @@ public class OrdersController : BaseApiController
 
         var order = await _service.CreateAsync(request);
         return SuccessResponse(order, "Order created successfully");
+    }
+
+    /// <summary>
+    /// Preview checkout bill from selected cart items + optional voucher.
+    /// </summary>
+    [HttpPost("checkout/preview")]
+    public async Task<ActionResult<ApiResponse<CheckoutPreviewDto>>> PreviewCheckout(CheckoutPreviewRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null) return ErrorResponse<CheckoutPreviewDto>("Unauthorized", statusCode: 401);
+
+        try
+        {
+            var preview = await _service.PreviewCheckoutAsync(userId.Value, request);
+            return SuccessResponse(preview);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return ErrorResponse<CheckoutPreviewDto>(ex.Message, statusCode: 404);
+        }
+        catch (ArgumentException ex)
+        {
+            return ErrorResponse<CheckoutPreviewDto>(ex.Message, statusCode: 400);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<CheckoutPreviewDto>(ex.Message, statusCode: 400);
+        }
+    }
+
+    /// <summary>
+    /// Create order from selected cart items, apply voucher, and create payment.
+    /// If payment method is VNPay, returns payment URL for redirect.
+    /// </summary>
+    [HttpPost("checkout")]
+    public async Task<ActionResult<ApiResponse<CheckoutOrderResultDto>>> Checkout(CheckoutOrderRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null) return ErrorResponse<CheckoutOrderResultDto>("Unauthorized", statusCode: 401);
+
+        try
+        {
+            var result = await _service.CheckoutFromCartAsync(userId.Value, request);
+
+            if (string.Equals(request.PaymentMethod, "VNPay", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(request.PaymentMethod, "VNPAY", StringComparison.OrdinalIgnoreCase))
+            {
+                var vnPayResult = await _paymentService.CreateVnPayPaymentUrlAsync(new CreateVnPayUrlRequest
+                {
+                    OrderId = result.Order.OrderId,
+                    ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString()
+                });
+
+                result.PaymentUrl = vnPayResult.PaymentUrl;
+                result.VnPayTransactionRef = vnPayResult.TxnRef;
+            }
+
+            return SuccessResponse(result, "Checkout completed successfully");
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return ErrorResponse<CheckoutOrderResultDto>(ex.Message, statusCode: 404);
+        }
+        catch (ArgumentException ex)
+        {
+            return ErrorResponse<CheckoutOrderResultDto>(ex.Message, statusCode: 400);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<CheckoutOrderResultDto>(ex.Message, statusCode: 400);
+        }
     }
 
     /// <summary>

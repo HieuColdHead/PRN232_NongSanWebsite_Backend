@@ -1,17 +1,23 @@
 using BLL.DTOs;
 using BLL.Services.Interfaces;
+using DAL.Data;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace BLL.Services;
 
 public class ReviewService : IReviewService
 {
-    private readonly IGenericRepository<Review> _repository;
+    private static readonly string[] SuccessfulOrderStatuses = ["completed", "delivered", "success"];
 
-    public ReviewService(IGenericRepository<Review> repository)
+    private readonly IGenericRepository<Review> _repository;
+    private readonly ApplicationDbContext _context;
+
+    public ReviewService(IGenericRepository<Review> repository, ApplicationDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
     public async Task<PagedResult<ReviewDto>> GetPagedAsync(int pageNumber, int pageSize)
@@ -53,6 +59,33 @@ public class ReviewService : IReviewService
 
     public async Task<ReviewDto> CreateAsync(CreateReviewRequest request)
     {
+        if (request.Rating is < 1 or > 5)
+        {
+            throw new ArgumentException("Rating must be between 1 and 5.", nameof(request.Rating));
+        }
+
+        var existingReview = await _repository.FindAsync(r => r.UserId == request.UserId && r.ProductId == request.ProductId);
+        if (existingReview.Any())
+        {
+            throw new InvalidOperationException("You have already reviewed this product.");
+        }
+
+        var hasSuccessfulOrder = await (
+            from detail in _context.OrderDetails
+            join order in _context.Orders on detail.OrderId equals order.OrderId
+            join variant in _context.ProductVariants on detail.VariantId equals variant.VariantId
+            where !order.IsDeleted
+                  && order.UserId == request.UserId
+                  && variant.ProductId == request.ProductId
+                  && SuccessfulOrderStatuses.Contains((order.Status ?? string.Empty).ToLower())
+            select detail.OrderDetailId
+        ).AnyAsync();
+
+        if (!hasSuccessfulOrder)
+        {
+            throw new InvalidOperationException("You can only review products from successful orders.");
+        }
+
         var review = new Review
         {
             Rating = request.Rating,

@@ -2,6 +2,7 @@ using BLL.DTOs;
 using BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace NongXanhController.Controllers;
 
@@ -62,6 +63,76 @@ public class PaymentsController : BaseApiController
 
         var payment = await _service.CreateAsync(request);
         return SuccessResponse(payment, "Payment created successfully");
+    }
+
+    [HttpPost("vnpay/create-url")]
+    public async Task<ActionResult<ApiResponse<VnPayCreateUrlResponse>>> CreateVnPayUrl(CreateVnPayUrlRequest request)
+    {
+        var order = await _orderService.GetByIdAsync(request.OrderId);
+        if (order == null)
+        {
+            return ErrorResponse<VnPayCreateUrlResponse>("Order not found", statusCode: 404);
+        }
+
+        var userId = GetCurrentUserId();
+        if (!IsAdmin() && order.UserId != userId)
+        {
+            return ErrorResponse<VnPayCreateUrlResponse>("Forbidden", statusCode: 403);
+        }
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.ClientIp))
+            {
+                request.ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+            }
+
+            var result = await _service.CreateVnPayPaymentUrlAsync(request);
+            return SuccessResponse(result, "VNPay payment URL created");
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return ErrorResponse<VnPayCreateUrlResponse>(ex.Message, statusCode: 404);
+        }
+        catch (ArgumentException ex)
+        {
+            return ErrorResponse<VnPayCreateUrlResponse>(ex.Message, statusCode: 400);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<VnPayCreateUrlResponse>(ex.Message, statusCode: 400);
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("vnpay-return")]
+    public async Task<ActionResult<ApiResponse<VnPayReturnResult>>> VnPayReturn()
+    {
+        var query = Request.Query.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+
+        try
+        {
+            var result = await _service.ProcessVnPayReturnAsync(query);
+            if (!result.SignatureValid)
+            {
+                return ErrorResponse<VnPayReturnResult>(result.Message ?? "Invalid VNPay signature.", statusCode: 400);
+            }
+
+            if (!result.PaymentSuccess)
+            {
+                return ErrorResponse<VnPayReturnResult>(result.Message ?? "VNPay payment failed.", statusCode: 400);
+            }
+
+            return SuccessResponse(result, "VNPay payment callback processed successfully");
+        }
+        catch (ArgumentException ex)
+        {
+            return ErrorResponse<VnPayReturnResult>(ex.Message, statusCode: 400);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<VnPayReturnResult>(ex.Message, statusCode: 400);
+        }
     }
 
     /// <summary>
