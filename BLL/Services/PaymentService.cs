@@ -6,6 +6,7 @@ using DAL.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Net;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -153,6 +154,7 @@ public class PaymentService : IPaymentService
 
         var signData = BuildQueryString(vnPayParams);
         var secureHash = ComputeHmacSha512(hashSecret, signData);
+        LogVnPayRequestSignature(txnRef, signData, secureHash, returnUrl);
         var paymentUrl = $"{baseUrl}?{signData}&vnp_SecureHash={Uri.EscapeDataString(secureHash)}";
 
         _context.Transactions.Add(new Transaction
@@ -191,7 +193,8 @@ public class PaymentService : IPaymentService
         var transactionStatus = queryParams.TryGetValue("vnp_TransactionStatus", out var ts) ? ts : null;
 
         var signParams = queryParams
-            .Where(kv => !string.IsNullOrWhiteSpace(kv.Value)
+            .Where(kv => kv.Key.StartsWith("vnp_", StringComparison.OrdinalIgnoreCase)
+                         && !string.IsNullOrWhiteSpace(kv.Value)
                          && !kv.Key.Equals("vnp_SecureHash", StringComparison.OrdinalIgnoreCase)
                          && !kv.Key.Equals("vnp_SecureHashType", StringComparison.OrdinalIgnoreCase))
             .OrderBy(kv => kv.Key, StringComparer.Ordinal)
@@ -201,6 +204,14 @@ public class PaymentService : IPaymentService
         var expectedHash = ComputeHmacSha512(hashSecret, signData);
         var signatureValid = !string.IsNullOrWhiteSpace(secureHash)
                              && secureHash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase);
+        LogVnPayResponseSignature(
+            txnRef,
+            signData,
+            secureHash,
+            expectedHash,
+            signatureValid,
+            responseCode,
+            transactionStatus);
 
         var paymentSuccess = signatureValid
                              && responseCode == "00"
@@ -305,7 +316,7 @@ public class PaymentService : IPaymentService
 
     private string GetRequiredConfig(string key)
     {
-        var value = _configuration[key];
+        var value = _configuration[key]?.Trim();
         if (string.IsNullOrWhiteSpace(value))
         {
             throw new InvalidOperationException($"Missing configuration value: {key}");
@@ -321,7 +332,18 @@ public class PaymentService : IPaymentService
             return "127.0.0.1";
         }
 
-        return ip.Trim();
+        var trimmed = ip.Trim();
+        if (trimmed == "::1")
+        {
+            return "127.0.0.1";
+        }
+
+        if (trimmed.Contains(':'))
+        {
+            return "127.0.0.1";
+        }
+
+        return trimmed;
     }
 
     private static string BuildTxnRef(Guid orderId)
@@ -333,7 +355,7 @@ public class PaymentService : IPaymentService
     {
         return string.Join("&", parameters
             .Where(p => !string.IsNullOrWhiteSpace(p.Value))
-            .Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
+            .Select(p => $"{WebUtility.UrlEncode(p.Key)}={WebUtility.UrlEncode(p.Value)}"));
     }
 
     private static string ComputeHmacSha512(string secret, string input)
@@ -344,6 +366,51 @@ public class PaymentService : IPaymentService
         using var hmac = new HMACSHA512(keyBytes);
         var hashBytes = hmac.ComputeHash(inputBytes);
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
+    }
+
+    private bool IsVnPaySignatureDebugEnabled()
+    {
+        return bool.TryParse(_configuration["VnPay:EnableSignatureDebug"], out var enabled) && enabled;
+    }
+
+    private void LogVnPayRequestSignature(string txnRef, string signData, string secureHash, string returnUrl)
+    {
+        if (!IsVnPaySignatureDebugEnabled())
+        {
+            return;
+        }
+
+        _logger.LogInformation(
+            "VNPay request signature | TxnRef={TxnRef} | ReturnUrl={ReturnUrl} | SignData={SignData} | SecureHash={SecureHash}",
+            txnRef,
+            returnUrl,
+            signData,
+            secureHash);
+    }
+
+    private void LogVnPayResponseSignature(
+        string? txnRef,
+        string signData,
+        string? providedHash,
+        string expectedHash,
+        bool signatureValid,
+        string? responseCode,
+        string? transactionStatus)
+    {
+        if (!IsVnPaySignatureDebugEnabled())
+        {
+            return;
+        }
+
+        _logger.LogInformation(
+            "VNPay response signature | TxnRef={TxnRef} | SignatureValid={SignatureValid} | ResponseCode={ResponseCode} | TransactionStatus={TransactionStatus} | ProvidedHash={ProvidedHash} | ExpectedHash={ExpectedHash} | SignData={SignData}",
+            txnRef,
+            signatureValid,
+            responseCode,
+            transactionStatus,
+            providedHash,
+            expectedHash,
+            signData);
     }
 
     private async Task SendOrderConfirmationEmailAsync(Guid orderId)
