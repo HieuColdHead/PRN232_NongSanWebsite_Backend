@@ -47,7 +47,7 @@ public class ProductsController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<ProductDto>>> PostProduct(CreateProductRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<ProductDto>("Forbidden", statusCode: 403);
         }
@@ -59,7 +59,7 @@ public class ProductsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutProduct(Guid id, UpdateProductRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
@@ -72,7 +72,7 @@ public class ProductsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteProduct(Guid id)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }

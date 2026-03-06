@@ -22,7 +22,7 @@ public class PaymentsController : BaseApiController
     [HttpGet("order/{orderId}")]
     public async Task<ActionResult<ApiResponse<PaymentDto>>> GetByOrder(Guid orderId)
     {
-        // Verify the user owns this order (or is admin)
+        // Verify the user owns this order (or is admin/staff)
         var order = await _orderService.GetByIdAsync(orderId);
         if (order == null)
         {
@@ -30,7 +30,7 @@ public class PaymentsController : BaseApiController
         }
 
         var userId = GetCurrentUserId();
-        if (!IsAdmin() && order.UserId != userId)
+        if (!IsAdminOrStaff() && order.UserId != userId)
         {
             return ErrorResponse<PaymentDto>("Forbidden", statusCode: 403);
         }
@@ -48,7 +48,7 @@ public class PaymentsController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<PaymentDto>>> PostPayment(CreatePaymentRequest request)
     {
-        // Verify the user owns the order being paid for (or is admin)
+        // Verify the user owns the order being paid for (or is admin/staff)
         var order = await _orderService.GetByIdAsync(request.OrderId);
         if (order == null)
         {
@@ -56,7 +56,7 @@ public class PaymentsController : BaseApiController
         }
 
         var userId = GetCurrentUserId();
-        if (!IsAdmin() && order.UserId != userId)
+        if (!IsAdminOrStaff() && order.UserId != userId)
         {
             return ErrorResponse<PaymentDto>("Forbidden", statusCode: 403);
         }
@@ -75,7 +75,7 @@ public class PaymentsController : BaseApiController
         }
 
         var userId = GetCurrentUserId();
-        if (!IsAdmin() && order.UserId != userId)
+        if (!IsAdminOrStaff() && order.UserId != userId)
         {
             return ErrorResponse<VnPayCreateUrlResponse>("Forbidden", statusCode: 403);
         }
@@ -136,12 +136,12 @@ public class PaymentsController : BaseApiController
     }
 
     /// <summary>
-    /// Admin only: update payment status.
+    /// Admin or Staff: update payment status.
     /// </summary>
     [HttpPatch("{id}/status")]
     public async Task<ActionResult<ApiResponse<PaymentDto>>> UpdateStatus(Guid id, [FromBody] string status)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<PaymentDto>("Forbidden", statusCode: 403);
         }

@@ -42,7 +42,7 @@ public class ProductVariantsController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<ProductVariant>>> PostProductVariant(CreateProductVariantRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<ProductVariant>("Forbidden", statusCode: 403);
         }
@@ -54,7 +54,7 @@ public class ProductVariantsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutProductVariant(Guid id, UpdateProductVariantRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
@@ -66,7 +66,7 @@ public class ProductVariantsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteProductVariant(Guid id)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }

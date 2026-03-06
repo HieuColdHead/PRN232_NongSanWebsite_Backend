@@ -17,6 +17,20 @@ namespace NongXanhController
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+            var staffOrigins = builder.Configuration.GetSection("Cors:StaffOrigins").Get<string[]>() ?? [];
+            var corsOrigins = configuredOrigins
+                .Concat(staffOrigins)
+                .Where(origin => !string.IsNullOrWhiteSpace(origin))
+                .Select(origin => origin.Trim().TrimEnd('/'))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            if (corsOrigins.Length == 0)
+            {
+                corsOrigins = ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"];
+            }
+
             // Add services to the container.
 
             // Cấu hình DbContext
@@ -51,6 +65,17 @@ namespace NongXanhController
 
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddHttpClient();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("FrontendCors", policy =>
+                {
+                    policy.WithOrigins(corsOrigins)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
+            });
 
             // JWT
             var jwtKey = builder.Configuration["Jwt:Key"];
@@ -127,6 +152,7 @@ namespace NongXanhController
 
                 // Seed admin account if not exists
                 var adminEmails = app.Configuration.GetSection("AdminEmails").Get<string[]>() ?? [];
+                var staffEmails = app.Configuration.GetSection("StaffEmails").Get<string[]>() ?? ["staff@gmail.com"];
                 var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
                 foreach (var adminEmail in adminEmails)
                 {
@@ -147,6 +173,28 @@ namespace NongXanhController
                         Console.WriteLine($"Seeded admin account: {email} / Admin@123");
                     }
                 }
+
+                foreach (var staffEmailRaw in staffEmails)
+                {
+                    var email = staffEmailRaw.Trim().ToLowerInvariant();
+                    if (string.IsNullOrWhiteSpace(email)) continue;
+
+                    var exists = db.Users.Any(u => u.Email == email);
+                    if (!exists)
+                    {
+                        db.Users.Add(new DAL.Entity.User
+                        {
+                            Email = email,
+                            DisplayName = "Staff",
+                            Provider = "Local",
+                            PasswordHash = passwordHasher.Hash("Staff@123"),
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                        db.SaveChanges();
+                        Console.WriteLine($"Seeded staff account: {email} / Staff@123");
+                    }
+                }
             }
 
             // Configure the HTTP request pipeline.
@@ -157,6 +205,8 @@ namespace NongXanhController
 
             // Redirect root to Swagger UI
             app.MapGet("/", () => Results.Redirect("/swagger"));
+
+            app.UseCors("FrontendCors");
 
             app.UseAuthentication();
             app.UseAuthorization();

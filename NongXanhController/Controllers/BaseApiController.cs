@@ -8,6 +8,7 @@ namespace NongXanhController.Controllers;
 public class BaseApiController : ControllerBase
 {
     private const string AdminRoleName = "Admin";
+    private const string StaffRoleName = "Staff";
 
     protected Guid? GetCurrentUserId()
     {
@@ -16,6 +17,10 @@ public class BaseApiController : ControllerBase
     }
 
     protected bool IsAdmin() => User.IsInRole(AdminRoleName);
+
+    protected bool IsStaff() => User.IsInRole(StaffRoleName);
+
+    protected bool IsAdminOrStaff() => IsAdmin() || IsStaff();
 
     /// <summary>
     /// Returns the role of the current user from JWT claims, or null if not authenticated.

@@ -19,7 +19,7 @@ public class OrdersController : BaseApiController
     }
 
     /// <summary>
-    /// Admin: get all orders (paged). Normal user: get only own orders.
+    /// Admin or Staff: get all orders (paged). Normal user: get only own orders.
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PagedResult<OrderDto>>>> GetOrders([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
@@ -29,7 +29,7 @@ public class OrdersController : BaseApiController
             return ErrorResponse<PagedResult<OrderDto>>("Page number and page size must be greater than 0.");
         }
 
-        if (IsAdmin())
+        if (IsAdminOrStaff())
         {
             var result = await _service.GetPagedAsync(pageNumber, pageSize);
             return SuccessResponse(result);
@@ -52,9 +52,9 @@ public class OrdersController : BaseApiController
             return ErrorResponse<OrderDto>("Order not found", statusCode: 404);
         }
 
-        // Non-admin can only view their own orders
+        // Non-admin/non-staff can only view their own orders
         var userId = GetCurrentUserId();
-        if (!IsAdmin() && order.UserId != userId)
+        if (!IsAdminOrStaff() && order.UserId != userId)
         {
             return ErrorResponse<OrderDto>("Forbidden", statusCode: 403);
         }
@@ -147,7 +147,7 @@ public class OrdersController : BaseApiController
     }
 
     /// <summary>
-    /// Admin can update any order. Normal user can only update shipping address of their own pending orders.
+    /// Admin or Staff can update any order. Normal user can only update shipping address of their own pending orders.
     /// </summary>
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutOrder(Guid id, UpdateOrderRequest request)
@@ -159,14 +159,14 @@ public class OrdersController : BaseApiController
         }
 
         var userId = GetCurrentUserId();
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             if (existing.UserId != userId)
             {
                 return ErrorResponse<object>("Forbidden", statusCode: 403);
             }
 
-            // Non-admin cannot change order status or VnPay status
+            // Non-admin/non-staff cannot change order status or VnPay status
             request.Status = null;
             request.VnPayStatus = null;
         }
@@ -178,7 +178,7 @@ public class OrdersController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteOrder(Guid id)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }

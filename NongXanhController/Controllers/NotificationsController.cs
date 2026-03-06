@@ -17,7 +17,7 @@ public class NotificationsController : BaseApiController
     }
 
     /// <summary>
-    /// Get notifications for the current user (from JWT). Admin can optionally query by userId.
+    /// Get notifications for the current user (from JWT). Admin or Staff can optionally query by userId.
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PagedResult<NotificationDto>>>> GetMyNotifications(
@@ -32,9 +32,9 @@ public class NotificationsController : BaseApiController
 
         Guid targetUserId;
 
-        if (userId.HasValue && IsAdmin())
+        if (userId.HasValue && IsAdminOrStaff())
         {
-            // Admin can view any user's notifications
+            // Admin/Staff can view any user's notifications
             targetUserId = userId.Value;
         }
         else
@@ -60,9 +60,9 @@ public class NotificationsController : BaseApiController
             return ErrorResponse<NotificationDto>("Notification not found", statusCode: 404);
         }
 
-        // Non-admin can only view their own notifications
+        // Non-admin/non-staff can only view their own notifications
         var currentUserId = GetCurrentUserId();
-        if (!IsAdmin() && notification.UserId != currentUserId)
+        if (!IsAdminOrStaff() && notification.UserId != currentUserId)
         {
             return ErrorResponse<NotificationDto>("Forbidden", statusCode: 403);
         }
@@ -71,12 +71,12 @@ public class NotificationsController : BaseApiController
     }
 
     /// <summary>
-    /// Only Admin can create notifications for users.
+    /// Only Admin or Staff can create notifications for users.
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<ApiResponse<NotificationDto>>> PostNotification(CreateNotificationRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<NotificationDto>("Forbidden", statusCode: 403);
         }
@@ -108,7 +108,7 @@ public class NotificationsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteNotification(Guid id)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }

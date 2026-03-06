@@ -13,6 +13,7 @@ public class UsersController : ControllerBase
 {
     private const int MaxPageSize = 100;
     private const string AdminRoleName = "Admin";
+    private const string StaffRoleName = "Staff";
     private readonly IUserService _userService;
 
     public UsersController(IUserService userService)
@@ -27,6 +28,10 @@ public class UsersController : ControllerBase
     }
 
     private bool IsAdmin() => User.IsInRole(AdminRoleName);
+
+    private bool IsStaff() => User.IsInRole(StaffRoleName);
+
+    private bool IsAdminOrStaff() => IsAdmin() || IsStaff();
 
     [HttpGet("me")]
     public async Task<IActionResult> GetMe()
@@ -44,6 +49,11 @@ public class UsersController : ControllerBase
     [HttpPut("me")]
     public async Task<IActionResult> UpdateMe([FromBody] UpdateUserRequest request)
     {
+        if (IsStaff())
+        {
+            return Forbid();
+        }
+
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
@@ -65,7 +75,7 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return Forbid();
         }
@@ -88,7 +98,7 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var currentUserId = GetCurrentUserId();
-        if (!IsAdmin() && currentUserId != id)
+        if (!IsAdminOrStaff() && currentUserId != id)
         {
             return Forbid();
         }
@@ -117,6 +127,11 @@ public class UsersController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserRequest request)
     {
+        if (IsStaff())
+        {
+            return Forbid();
+        }
+
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);

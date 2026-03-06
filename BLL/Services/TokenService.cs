@@ -12,11 +12,17 @@ public sealed class TokenService : ITokenService
 {
     private readonly IConfiguration _configuration;
     private readonly HashSet<string> _adminEmails;
+    private readonly HashSet<string> _staffEmails;
 
     public TokenService(IConfiguration configuration)
     {
         _configuration = configuration;
         _adminEmails = configuration.GetSection("AdminEmails")
+            .Get<string[]>()
+            ?.Select(e => e.Trim().ToLowerInvariant())
+            .ToHashSet() ?? new HashSet<string>();
+
+        _staffEmails = configuration.GetSection("StaffEmails")
             .Get<string[]>()
             ?.Select(e => e.Trim().ToLowerInvariant())
             .ToHashSet() ?? new HashSet<string>();
@@ -61,10 +67,18 @@ public sealed class TokenService : ITokenService
 
     private UserRole ResolveRole(User user)
     {
-        if (!string.IsNullOrWhiteSpace(user.Email)
-            && _adminEmails.Contains(user.Email.Trim().ToLowerInvariant()))
+        if (!string.IsNullOrWhiteSpace(user.Email))
         {
-            return UserRole.Admin;
+            var normalizedEmail = user.Email.Trim().ToLowerInvariant();
+            if (_adminEmails.Contains(normalizedEmail))
+            {
+                return UserRole.Admin;
+            }
+
+            if (_staffEmails.Contains(normalizedEmail))
+            {
+                return UserRole.Staff;
+            }
         }
 
         return user.Role;

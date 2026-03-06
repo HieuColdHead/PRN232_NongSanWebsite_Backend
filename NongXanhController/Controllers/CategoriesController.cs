@@ -41,7 +41,7 @@ public class CategoriesController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> PostCategory(CreateCategoryRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<CategoryDto>("Forbidden", statusCode: 403);
         }
@@ -53,7 +53,7 @@ public class CategoriesController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutCategory(Guid id, UpdateCategoryRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
@@ -65,7 +65,7 @@ public class CategoriesController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteCategory(Guid id)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }

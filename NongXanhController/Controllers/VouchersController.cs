@@ -61,12 +61,12 @@ public class VouchersController : BaseApiController
     }
 
     /// <summary>
-    /// Admin only: create a voucher.
+    /// Admin or Staff: create a voucher.
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<ApiResponse<VoucherDto>>> PostVoucher(CreateVoucherRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<VoucherDto>("Forbidden", statusCode: 403);
         }
@@ -76,12 +76,12 @@ public class VouchersController : BaseApiController
     }
 
     /// <summary>
-    /// Admin only: update a voucher.
+    /// Admin or Staff: update a voucher.
     /// </summary>
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutVoucher(Guid id, UpdateVoucherRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
@@ -91,12 +91,12 @@ public class VouchersController : BaseApiController
     }
 
     /// <summary>
-    /// Admin only: delete a voucher.
+    /// Admin or Staff: delete a voucher.
     /// </summary>
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteVoucher(Guid id)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }

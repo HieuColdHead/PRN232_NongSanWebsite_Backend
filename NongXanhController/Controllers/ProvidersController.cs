@@ -42,7 +42,7 @@ public class ProvidersController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<Provider>>> PostProvider(CreateProviderRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<Provider>("Forbidden", statusCode: 403);
         }
@@ -54,7 +54,7 @@ public class ProvidersController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> PutProvider(Guid id, UpdateProviderRequest request)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
@@ -66,7 +66,7 @@ public class ProvidersController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteProvider(Guid id)
     {
-        if (!IsAdmin())
+        if (!IsAdminOrStaff())
         {
             return ErrorResponse<object>("Forbidden", statusCode: 403);
         }
