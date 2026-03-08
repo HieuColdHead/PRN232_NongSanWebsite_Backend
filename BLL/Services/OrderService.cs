@@ -1,9 +1,12 @@
 using BLL.DTOs;
+using BLL.DTOs.Ghn;
 using BLL.Services.Interfaces;
-using DAL.Entity;
+using System.Globalization;
 using DAL.Data;
+using DAL.Entity;
 using DAL.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BLL.Services;
 
@@ -13,17 +16,26 @@ public class OrderService : IOrderService
     private readonly IGenericRepository<ProductVariant> _variantRepository;
     private readonly ApplicationDbContext _context;
     private readonly IPaymentService _paymentService;
+    private readonly IGhnService _ghnService;
+    private readonly IShipmentService _shipmentService;
+    private readonly ILogger<OrderService> _logger;
 
     public OrderService(
         IGenericRepository<Order> orderRepository,
         IGenericRepository<ProductVariant> variantRepository,
         ApplicationDbContext context,
-        IPaymentService paymentService)
+        IPaymentService paymentService,
+        IGhnService ghnService,
+        IShipmentService shipmentService,
+        ILogger<OrderService> logger)
     {
         _orderRepository = orderRepository;
         _variantRepository = variantRepository;
         _context = context;
         _paymentService = paymentService;
+        _ghnService = ghnService;
+        _shipmentService = shipmentService;
+        _logger = logger;
     }
 
     public async Task<PagedResult<OrderDto>> GetPagedAsync(int pageNumber, int pageSize)
@@ -83,9 +95,11 @@ public class OrderService : IOrderService
             OrderDate = DateTime.UtcNow,
             ShippingFee = request.ShippingFee,
             ShippingAddress = request.ShippingAddress,
+            ProvinceId = request.ProvinceId,
             UserId = request.UserId,
             Status = "Pending",
-            VnPayStatus = "Pending"
+            VnPayStatus = "Pending",
+            DeliveryStatus = "PendingShipment"
         };
 
         decimal totalAmount = 0;
@@ -121,10 +135,7 @@ public class OrderService : IOrderService
     public async Task<CheckoutPreviewDto> PreviewCheckoutAsync(Guid userId, CheckoutPreviewRequest request)
     {
         ValidateCartItemSelection(request.CartItemIds);
-        if (request.ShippingFee < 0)
-        {
-            throw new ArgumentException("Shipping fee cannot be negative.", nameof(request.ShippingFee));
-        }
+        ValidateGhnDestination(request.ToWardCode);
 
         var (_, selectedItems) = await LoadSelectedCartItemsAsync(userId, request.CartItemIds, asNoTracking: true);
         var (orderDetails, checkoutItems, totalAmount) = BuildOrderDetails(selectedItems);
@@ -136,13 +147,26 @@ public class OrderService : IOrderService
             totalAmount,
             forUpdate: false);
 
+        var destinationDistrictId = await ResolveDestinationDistrictIdAsync(
+            request.ToDistrictId,
+            request.ToWardCode!,
+            request.ProvinceId);
+
+        var shippingFee = await ResolveShippingFeeAsync(
+            destinationDistrictId,
+            request.ToWardCode!,
+            totalAmount,
+            selectedItems,
+            request.ProvinceId,
+            request.InsuranceValue);
+
         return new CheckoutPreviewDto
         {
             Items = checkoutItems,
             TotalAmount = totalAmount,
-            ShippingFee = request.ShippingFee,
+            ShippingFee = shippingFee,
             DiscountAmount = discountAmount,
-            FinalAmount = Math.Max(0, totalAmount + request.ShippingFee - discountAmount),
+            FinalAmount = Math.Max(0, totalAmount + shippingFee - discountAmount),
             VoucherCode = appliedVoucherCode
         };
     }
@@ -160,67 +184,119 @@ public class OrderService : IOrderService
             throw new ArgumentException("Shipping method is required.", nameof(request.ShippingMethod));
         }
 
-        if (request.ShippingFee < 0)
+        ValidateGhnDestination(request.ToWardCode);
+
+        if (string.IsNullOrWhiteSpace(request.RecipientName))
         {
-            throw new ArgumentException("Shipping fee cannot be negative.", nameof(request.ShippingFee));
+            throw new ArgumentException("Recipient name is required.", nameof(request.RecipientName));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.RecipientPhone))
+        {
+            throw new ArgumentException("Recipient phone is required.", nameof(request.RecipientPhone));
         }
 
         var normalizedPaymentMethod = NormalizePaymentMethod(request.PaymentMethod);
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
+        Order order;
+        PaymentDto payment;
 
-        var (cart, selectedItems) = await LoadSelectedCartItemsAsync(userId, request.CartItemIds, asNoTracking: false);
-        var (orderDetails, _, totalAmount) = BuildOrderDetails(selectedItems);
-
-        var (voucher, discountAmount, _) = await ResolveVoucherAsync(
-            userId,
-            request.VoucherCode,
-            totalAmount,
-            forUpdate: true);
-
-        if (voucher != null)
+        try
         {
-            ConsumeVoucher(voucher, userId);
+            var (cart, selectedItems) = await LoadSelectedCartItemsAsync(userId, request.CartItemIds, asNoTracking: false);
+            var (orderDetails, _, totalAmount) = BuildOrderDetails(selectedItems);
+
+            var (voucher, discountAmount, _) = await ResolveVoucherAsync(
+                userId,
+                request.VoucherCode,
+                totalAmount,
+                forUpdate: true);
+
+            if (voucher != null)
+            {
+                ConsumeVoucher(voucher, userId);
+            }
+
+            var destinationDistrictId = await ResolveDestinationDistrictIdAsync(
+                request.ToDistrictId,
+                request.ToWardCode!,
+                request.ProvinceId);
+
+            var shippingFee = await ResolveShippingFeeAsync(
+                destinationDistrictId,
+                request.ToWardCode!,
+                totalAmount,
+                selectedItems,
+                request.ProvinceId,
+                request.InsuranceValue);
+
+            var finalAmount = Math.Max(0, totalAmount + shippingFee - discountAmount);
+            order = new Order
+            {
+                OrderDate = DateTime.UtcNow,
+                ShippingFee = shippingFee,
+                ShippingAddress = request.ShippingAddress,
+                UserId = userId,
+                RecipientName = request.RecipientName?.Trim(),
+                RecipientPhone = request.RecipientPhone?.Trim(),
+                ProvinceCode = request.ProvinceCode?.Trim(),
+                ProvinceId = request.ProvinceId,
+                DistrictCode = destinationDistrictId.ToString(CultureInfo.InvariantCulture),
+                WardCode = request.ToWardCode?.Trim(),
+                DeliveryStatus = "PendingShipment",
+                Status = "Pending",
+                VnPayStatus = normalizedPaymentMethod.Equals("VNPay", StringComparison.OrdinalIgnoreCase) ? "Pending" : "NotApplicable",
+                TotalAmount = totalAmount,
+                DiscountAmount = discountAmount,
+                FinalAmount = finalAmount,
+                OrderDetails = orderDetails
+            };
+
+            await _orderRepository.AddAsync(order);
+
+            _context.CartItems.RemoveRange(selectedItems);
+            var selectedIds = selectedItems.Select(i => i.CartItemId).ToList();
+            var remainingTotal = await _context.CartItems
+                .Where(ci => ci.CartId == cart.CartId && !selectedIds.Contains(ci.CartItemId))
+                .SumAsync(ci => (decimal?)ci.SubTotal);
+            cart.TotalAmount = remainingTotal ?? 0m;
+
+            await _orderRepository.SaveChangesAsync();
+
+            payment = await _paymentService.CreateAsync(new CreatePaymentRequest
+            {
+                PaymentMethod = normalizedPaymentMethod,
+                OrderId = order.OrderId,
+                CodAmount = normalizedPaymentMethod.Equals("COD", StringComparison.OrdinalIgnoreCase) ? finalAmount : 0
+            });
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
         }
 
-        var finalAmount = Math.Max(0, totalAmount + request.ShippingFee - discountAmount);
-        var order = new Order
+        ShipmentDto? shipment = null;
+        if (normalizedPaymentMethod.Equals("COD", StringComparison.OrdinalIgnoreCase))
         {
-            OrderDate = DateTime.UtcNow,
-            ShippingFee = request.ShippingFee,
-            ShippingAddress = request.ShippingAddress,
-            UserId = userId,
-            Status = "Pending",
-            VnPayStatus = normalizedPaymentMethod.Equals("VNPay", StringComparison.OrdinalIgnoreCase) ? "Pending" : "NotApplicable",
-            TotalAmount = totalAmount,
-            DiscountAmount = discountAmount,
-            FinalAmount = finalAmount,
-            OrderDetails = orderDetails
-        };
-
-        await _orderRepository.AddAsync(order);
-
-        _context.CartItems.RemoveRange(selectedItems);
-        var selectedIds = selectedItems.Select(i => i.CartItemId).ToList();
-        var remainingTotal = await _context.CartItems
-            .Where(ci => ci.CartId == cart.CartId && !selectedIds.Contains(ci.CartItemId))
-            .SumAsync(ci => (decimal?)ci.SubTotal);
-        cart.TotalAmount = remainingTotal ?? 0m;
-
-        await _orderRepository.SaveChangesAsync();
-
-        var payment = await _paymentService.CreateAsync(new CreatePaymentRequest
-        {
-            PaymentMethod = normalizedPaymentMethod,
-            OrderId = order.OrderId
-        });
-
-        await transaction.CommitAsync();
+            try
+            {
+                shipment = await _shipmentService.CreateShipmentForOrderAsync(order.OrderId, "CheckoutCOD");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create COD shipment for OrderId {OrderId}", order.OrderId);
+            }
+        }
 
         return new CheckoutOrderResultDto
         {
             Order = await MapToDto(order),
-            Payment = payment
+            Payment = payment,
+            Shipment = shipment
         };
     }
 
@@ -231,6 +307,8 @@ public class OrderService : IOrderService
 
         if (request.ShippingAddress != null)
             order.ShippingAddress = request.ShippingAddress;
+        if (request.ProvinceId.HasValue)
+            order.ProvinceId = request.ProvinceId;
         if (request.Status != null)
             order.Status = request.Status;
         if (request.VnPayStatus != null)
@@ -277,6 +355,61 @@ public class OrderService : IOrderService
         }
 
         throw new ArgumentException("Unsupported payment method. Allowed values: COD, VNPay.", nameof(paymentMethod));
+    }
+
+    private static void ValidateGhnDestination(string? toWardCode)
+    {
+        if (string.IsNullOrWhiteSpace(toWardCode))
+        {
+            throw new ArgumentException("Destination ward (toWardCode) is required for GHN shipping fee.", nameof(toWardCode));
+        }
+    }
+
+    private async Task<int> ResolveDestinationDistrictIdAsync(int? toDistrictId, string toWardCode, int? provinceId)
+    {
+        if (toDistrictId.HasValue && toDistrictId.Value > 0)
+        {
+            return toDistrictId.Value;
+        }
+
+        if (!_ghnService.IsConfigured())
+        {
+            throw new InvalidOperationException(
+                "GHN is not configured. Please configure Ghn section in appsettings before checkout.");
+        }
+
+        return await _ghnService.ResolveDistrictIdByWardAsync(toWardCode.Trim(), provinceId);
+    }
+
+    private async Task<decimal> ResolveShippingFeeAsync(
+        int toDistrictId,
+        string toWardCode,
+        decimal insuranceValue,
+        List<CartItem> selectedItems,
+        int? provinceId,
+        decimal overrideInsuranceValue)
+    {
+        if (!_ghnService.IsConfigured())
+        {
+            throw new InvalidOperationException(
+                "GHN is not configured. Please configure Ghn section in appsettings before checkout.");
+        }
+
+        var totalQuantity = selectedItems.Sum(i => Math.Max(1, i.Quantity));
+        var estimatedWeight = Math.Max(1000, totalQuantity * 200);
+
+        return await _ghnService.CalculateShippingFeeAsync(new GhnCalculateFeeRequest
+        {
+            ToDistrictId = toDistrictId,
+            ToWardCode = toWardCode.Trim(),
+            ProvinceId = provinceId,
+            InsuranceValue = Math.Max(0, overrideInsuranceValue > 0 ? overrideInsuranceValue : insuranceValue),
+            Weight = estimatedWeight,
+            Length = 20,
+            Width = 20,
+            Height = 10,
+            ServiceTypeId = null
+        });
     }
 
     private async Task<(Cart Cart, List<CartItem> Items)> LoadSelectedCartItemsAsync(
@@ -465,6 +598,10 @@ public class OrderService : IOrderService
                     .ThenInclude(p => p.ProductImages)
             .ToListAsync();
 
+        var shipment = await _context.Shipments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.OrderId == order.OrderId && !s.IsDeleted);
+
         return new OrderDto
         {
             OrderId = order.OrderId,
@@ -477,7 +614,30 @@ public class OrderService : IOrderService
             ShippingAddress = order.ShippingAddress,
             Status = order.Status,
             VnPayStatus = order.VnPayStatus,
+            DeliveryStatus = order.DeliveryStatus,
+            RecipientName = order.RecipientName,
+            RecipientPhone = order.RecipientPhone,
+            ProvinceCode = order.ProvinceCode,
+            ProvinceId = order.ProvinceId,
+            DistrictCode = order.DistrictCode,
+            WardCode = order.WardCode,
             UserId = order.UserId,
+            Shipment = shipment == null
+                ? null
+                : new ShipmentDto
+                {
+                    ShipmentId = shipment.ShipmentId,
+                    OrderId = shipment.OrderId,
+                    GhnOrderCode = shipment.GhnOrderCode,
+                    ServiceId = shipment.ServiceId,
+                    DeliveryStatus = shipment.DeliveryStatus,
+                    RawStatus = shipment.RawStatus,
+                    TrackingUrl = shipment.TrackingUrl,
+                    ShippingFee = shipment.ShippingFee,
+                    CodAmount = shipment.CodAmount,
+                    CreatedAt = shipment.CreatedAt,
+                    UpdatedAt = shipment.UpdatedAt
+                },
             OrderDetails = orderDetails.Select(d => new OrderDetailDto
             {
                 OrderDetailId = d.OrderDetailId,

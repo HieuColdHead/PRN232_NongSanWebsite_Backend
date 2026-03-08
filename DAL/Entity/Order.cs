@@ -41,6 +41,33 @@ public class Order
     [MaxLength(50)]
     public string? VnPayStatus { get; set; }
 
+    [Column("delivery_status")]
+    [MaxLength(50)]
+    public string? DeliveryStatus { get; set; }
+
+    [Column("recipient_name")]
+    [MaxLength(150)]
+    public string? RecipientName { get; set; }
+
+    [Column("recipient_phone")]
+    [MaxLength(20)]
+    public string? RecipientPhone { get; set; }
+
+    [Column("province_code")]
+    [MaxLength(20)]
+    public string? ProvinceCode { get; set; }
+
+    [Column("province_id")]
+    public int? ProvinceId { get; set; }
+
+    [Column("district_code")]
+    [MaxLength(20)]
+    public string? DistrictCode { get; set; }
+
+    [Column("ward_code")]
+    [MaxLength(20)]
+    public string? WardCode { get; set; }
+
     [Column("user_id")]
     public Guid UserId { get; set; }
 
@@ -51,4 +78,5 @@ public class Order
     public bool IsDeleted { get; set; } = false;
 
     public ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+    public Shipment? Shipment { get; set; }
 }

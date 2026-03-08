@@ -53,6 +53,8 @@ namespace NongXanhController
             builder.Services.AddScoped<ICartService, CartService>();
             builder.Services.AddScoped<IVoucherService, VoucherService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IGhnService, GhnService>();
+            builder.Services.AddScoped<IShipmentService, ShipmentService>();
             builder.Services.AddScoped<IBlogService, BlogService>();
 
             builder.Services.AddScoped<ITokenService, TokenService>();
@@ -65,6 +67,11 @@ namespace NongXanhController
 
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddHttpClient();
+            builder.Services.AddHttpClient("GHN", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+            });
 
             builder.Services.AddCors(options =>
             {

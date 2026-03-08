@@ -11,11 +11,13 @@ public class OrdersController : BaseApiController
 {
     private readonly IOrderService _service;
     private readonly IPaymentService _paymentService;
+    private readonly IShipmentService _shipmentService;
 
-    public OrdersController(IOrderService service, IPaymentService paymentService)
+    public OrdersController(IOrderService service, IPaymentService paymentService, IShipmentService shipmentService)
     {
         _service = service;
         _paymentService = paymentService;
+        _shipmentService = shipmentService;
     }
 
     /// <summary>
@@ -60,6 +62,64 @@ public class OrdersController : BaseApiController
         }
 
         return SuccessResponse(order);
+    }
+
+    [HttpGet("{id}/shipment")]
+    public async Task<ActionResult<ApiResponse<ShipmentDto>>> GetShipment(Guid id)
+    {
+        var order = await _service.GetByIdAsync(id);
+        if (order == null)
+        {
+            return ErrorResponse<ShipmentDto>("Order not found", statusCode: 404);
+        }
+
+        var userId = GetCurrentUserId();
+        if (!IsAdminOrStaff() && order.UserId != userId)
+        {
+            return ErrorResponse<ShipmentDto>("Forbidden", statusCode: 403);
+        }
+
+        var shipment = await _shipmentService.GetByOrderIdAsync(id);
+        if (shipment == null)
+        {
+            return ErrorResponse<ShipmentDto>("Shipment not found", statusCode: 404);
+        }
+
+        return SuccessResponse(shipment);
+    }
+
+    [HttpPost("{id}/shipment/sync")]
+    public async Task<ActionResult<ApiResponse<ShipmentDto>>> SyncShipment(Guid id)
+    {
+        var order = await _service.GetByIdAsync(id);
+        if (order == null)
+        {
+            return ErrorResponse<ShipmentDto>("Order not found", statusCode: 404);
+        }
+
+        var userId = GetCurrentUserId();
+        if (!IsAdminOrStaff() && order.UserId != userId)
+        {
+            return ErrorResponse<ShipmentDto>("Forbidden", statusCode: 403);
+        }
+
+        try
+        {
+            var shipment = await _shipmentService.SyncShipmentStatusFromGhnAsync(id);
+            return SuccessResponse(shipment, "Shipment synchronized from GHN successfully");
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return ErrorResponse<ShipmentDto>(ex.Message, statusCode: 404);
+        }
+        catch (ArgumentException ex)
+        {
+            return ErrorResponse<ShipmentDto>(ex.Message, statusCode: 400);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<ShipmentDto>(ex.Message, statusCode: 400);
+        }
     }
 
     [HttpPost]

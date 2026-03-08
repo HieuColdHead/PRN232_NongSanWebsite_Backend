@@ -6,12 +6,14 @@ public class PaymentDto
     public string? PaymentMethod { get; set; }
     public string? PaymentStatus { get; set; }
     public DateTime? PaidAt { get; set; }
+    public decimal? CodAmount { get; set; }
     public Guid OrderId { get; set; }
 }
 
 public class CreatePaymentRequest
 {
     public string? PaymentMethod { get; set; }
+    public decimal? CodAmount { get; set; }
     public Guid OrderId { get; set; }
 }
 

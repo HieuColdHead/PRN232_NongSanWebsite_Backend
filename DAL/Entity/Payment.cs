@@ -21,6 +21,9 @@ public class Payment
     [Column("paid_at")]
     public DateTime? PaidAt { get; set; }
 
+    [Column("cod_amount")]
+    public decimal? CodAmount { get; set; }
+
     [Column("order_id")]
     public Guid OrderId { get; set; }
 

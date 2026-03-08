@@ -18,6 +18,7 @@ public class PaymentService : IPaymentService
     private readonly IGenericRepository<Payment> _repository;
     private readonly ApplicationDbContext _context;
     private readonly IEmailSender _emailSender;
+    private readonly IShipmentService _shipmentService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PaymentService> _logger;
 
@@ -25,12 +26,14 @@ public class PaymentService : IPaymentService
         IGenericRepository<Payment> repository,
         ApplicationDbContext context,
         IEmailSender emailSender,
+        IShipmentService shipmentService,
         IConfiguration configuration,
         ILogger<PaymentService> logger)
     {
         _repository = repository;
         _context = context;
         _emailSender = emailSender;
+        _shipmentService = shipmentService;
         _configuration = configuration;
         _logger = logger;
     }
@@ -49,6 +52,7 @@ public class PaymentService : IPaymentService
         {
             PaymentMethod = request.PaymentMethod,
             PaymentStatus = "Pending",
+            CodAmount = request.CodAmount,
             OrderId = request.OrderId
         };
 
@@ -110,6 +114,7 @@ public class PaymentService : IPaymentService
             {
                 PaymentMethod = "VNPay",
                 PaymentStatus = "Pending",
+                CodAmount = 0,
                 OrderId = order.OrderId
             };
 
@@ -252,6 +257,12 @@ public class PaymentService : IPaymentService
 
             var existingOrderId = transaction.Payment?.OrderId;
             result.OrderId = existingOrderId;
+
+            if (existingOrderId.HasValue)
+            {
+                await TryCreateShipmentForPaidVnPayOrderAsync(existingOrderId.Value);
+            }
+
             return result;
         }
 
@@ -285,6 +296,11 @@ public class PaymentService : IPaymentService
 
         await _context.SaveChangesAsync();
 
+        if (paymentSuccess && result.OrderId.HasValue)
+        {
+            await TryCreateShipmentForPaidVnPayOrderAsync(result.OrderId.Value);
+        }
+
         result.Message = paymentSuccess ? "VNPay payment confirmed." : "VNPay payment failed.";
         return result;
     }
@@ -297,8 +313,24 @@ public class PaymentService : IPaymentService
             PaymentMethod = payment.PaymentMethod,
             PaymentStatus = payment.PaymentStatus,
             PaidAt = payment.PaidAt,
+            CodAmount = payment.CodAmount,
             OrderId = payment.OrderId
         };
+    }
+
+    private async Task TryCreateShipmentForPaidVnPayOrderAsync(Guid orderId)
+    {
+        try
+        {
+            await _shipmentService.CreateShipmentForOrderAsync(orderId, "VNPayCallbackPaid");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to create shipment after VNPay payment success for OrderId {OrderId}",
+                orderId);
+        }
     }
 
     private static bool IsCodPaymentMethod(string? paymentMethod)

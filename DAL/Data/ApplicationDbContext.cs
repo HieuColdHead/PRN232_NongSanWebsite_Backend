@@ -28,6 +28,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserVoucher> UserVouchers { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
+    public DbSet<Shipment> Shipments { get; set; }
+    public DbSet<ShipmentStatusUpdate> ShipmentStatusUpdates { get; set; }
     public DbSet<Blog> Blogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -108,6 +110,11 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
             entity.Property(e => e.FinalAmount).HasColumnType("decimal(18,2)");
             entity.Property(e => e.OrderNumber).HasMaxLength(7);
+
+            entity.HasOne(e => e.Shipment)
+                .WithOne(s => s.Order)
+                .HasForeignKey<Shipment>(s => s.OrderId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ?? OrderDetail ??
@@ -167,6 +174,7 @@ public class ApplicationDbContext : DbContext
         // ?? Payment ??
         modelBuilder.Entity<Payment>(entity =>
         {
+            entity.Property(e => e.CodAmount).HasColumnType("decimal(18,2)");
             entity.HasIndex(e => e.OrderId)
                 .HasDatabaseName("IX_Payments_OrderId");
         });
@@ -177,6 +185,27 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
             entity.HasIndex(e => e.PaymentId)
                 .HasDatabaseName("IX_Transactions_PaymentId");
+        });
+
+        // ?? Shipment ??
+        modelBuilder.Entity<Shipment>(entity =>
+        {
+            entity.Property(e => e.ShippingFee).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.CodAmount).HasColumnType("decimal(18,2)");
+
+            entity.HasIndex(e => e.OrderId)
+                .IsUnique()
+                .HasDatabaseName("IX_Shipments_OrderId");
+
+            entity.HasIndex(e => e.GhnOrderCode)
+                .HasDatabaseName("IX_Shipments_GhnOrderCode");
+        });
+
+        // ?? ShipmentStatusUpdate ??
+        modelBuilder.Entity<ShipmentStatusUpdate>(entity =>
+        {
+            entity.HasIndex(e => e.ShipmentId)
+                .HasDatabaseName("IX_ShipmentStatusUpdates_ShipmentId");
         });
 
         // ?? Blog ??

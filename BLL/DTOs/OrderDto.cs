@@ -12,7 +12,15 @@ public class OrderDto
     public string? ShippingAddress { get; set; }
     public string? Status { get; set; }
     public string? VnPayStatus { get; set; }
+    public string? DeliveryStatus { get; set; }
+    public string? RecipientName { get; set; }
+    public string? RecipientPhone { get; set; }
+    public string? ProvinceCode { get; set; }
+    public int? ProvinceId { get; set; }
+    public string? DistrictCode { get; set; }
+    public string? WardCode { get; set; }
     public Guid UserId { get; set; }
+    public ShipmentDto? Shipment { get; set; }
     public List<OrderDetailDto> OrderDetails { get; set; } = new();
 }
 
@@ -20,6 +28,7 @@ public class CreateOrderRequest
 {
     public decimal ShippingFee { get; set; }
     public string? ShippingAddress { get; set; }
+    public int? ProvinceId { get; set; }
     public Guid UserId { get; set; }
     public List<CreateOrderDetailRequest> OrderDetails { get; set; } = new();
 }
@@ -27,17 +36,26 @@ public class CreateOrderRequest
 public class CheckoutPreviewRequest
 {
     public List<Guid> CartItemIds { get; set; } = new();
-    public decimal ShippingFee { get; set; }
+    public int? ProvinceId { get; set; }
+    public int? ToDistrictId { get; set; }
+    public string? ToWardCode { get; set; }
+    public decimal InsuranceValue { get; set; }
     public string? VoucherCode { get; set; }
 }
 
 public class CheckoutOrderRequest
 {
     public List<Guid> CartItemIds { get; set; } = new();
-    public decimal ShippingFee { get; set; }
     public string? ShippingAddress { get; set; }
     public string? ShippingMethod { get; set; }
     public string? PaymentMethod { get; set; }
+    public string? RecipientName { get; set; }
+    public string? RecipientPhone { get; set; }
+    public string? ProvinceCode { get; set; }
+    public int? ProvinceId { get; set; }
+    public int? ToDistrictId { get; set; }
+    public string? ToWardCode { get; set; }
+    public decimal InsuranceValue { get; set; }
     public string? VoucherCode { get; set; }
 }
 
@@ -66,6 +84,7 @@ public class CheckoutOrderResultDto
 {
     public required OrderDto Order { get; set; }
     public required PaymentDto Payment { get; set; }
+    public ShipmentDto? Shipment { get; set; }
     public string? PaymentUrl { get; set; }
     public string? VnPayTransactionRef { get; set; }
 }
@@ -73,6 +92,7 @@ public class CheckoutOrderResultDto
 public class UpdateOrderRequest
 {
     public string? ShippingAddress { get; set; }
+    public int? ProvinceId { get; set; }
     public string? Status { get; set; }
     public string? VnPayStatus { get; set; }
 }
