@@ -2,217 +2,223 @@
 using BLL.Services.Interfaces;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace BLL.Services;
-
-public class ProductService : IProductService
+namespace BLL.Services
 {
-    private readonly IGenericRepository<Product> _repository;
-    private readonly IGenericRepository<Category> _categoryRepository;
-    private readonly IGenericRepository<Provider> _providerRepository;
-    private readonly IGenericRepository<ProductImage> _productImageRepository;
-    private readonly IGenericRepository<ProductVariant> _productVariantRepository;
-
-    public ProductService(IGenericRepository<Product> repository, IGenericRepository<Category> categoryRepository, IGenericRepository<Provider> providerRepository, IGenericRepository<ProductImage> productImageRepository, IGenericRepository<ProductVariant> productVariantRepository)
+    public class ProductService : IProductService
     {
-        _repository = repository;
-        _categoryRepository = categoryRepository;
-        _providerRepository = providerRepository;
-        _productImageRepository = productImageRepository;
-        _productVariantRepository = productVariantRepository;
-    }
+        private readonly IGenericRepository<Product> _repository;
+        private readonly IGenericRepository<Category> _categoryRepository;
+        private readonly IGenericRepository<Provider> _providerRepository;
+        private readonly IGenericRepository<ProductImage> _productImageRepository;
+        private readonly IGenericRepository<ProductVariant> _productVariantRepository;
 
-    public async Task<IEnumerable<ProductDto>> GetAllAsync()
-    {
-        var products = await _repository.GetAllAsync();
-        var dtos = new List<ProductDto>();
-        foreach (var product in products)
+        public ProductService(
+            IGenericRepository<Product> repository,
+            IGenericRepository<Category> categoryRepository,
+            IGenericRepository<Provider> providerRepository,
+            IGenericRepository<ProductImage> productImageRepository,
+            IGenericRepository<ProductVariant> productVariantRepository)
         {
-            dtos.Add(await MapToDto(product));
+            _repository = repository;
+            _categoryRepository = categoryRepository;
+            _providerRepository = providerRepository;
+            _productImageRepository = productImageRepository;
+            _productVariantRepository = productVariantRepository;
         }
-        return dtos;
-    }
 
-    public async Task<PagedResult<ProductDto>> GetPagedAsync(int pageNumber, int pageSize)
-    {
-        var (items, totalCount) = await _repository.GetPagedAsync(pageNumber, pageSize);
-        var dtos = new List<ProductDto>();
-        foreach (var item in items)
+        public async Task<IEnumerable<ProductDto>> GetAllAsync()
         {
-            dtos.Add(await MapToDto(item));
-        }
-        
-        return new PagedResult<ProductDto>
-        {
-            Items = dtos,
-            TotalCount = totalCount,
-            PageNumber = pageNumber,
-            PageSize = pageSize
-        };
-    }
-
-    public async Task<ProductDto?> GetByIdAsync(Guid id)
-    {
-        var product = await _repository.GetByIdAsync(id);
-        if (product == null) return null;
-        return await MapToDto(product);
-    }
-
-    public async Task<ProductDto> CreateAsync(CreateProductRequest request)
-    {
-        var product = new Product
-        {
-            ProductId = Guid.NewGuid(),
-            ProductName = request.Name,
-            Description = request.Description,
-            Origin = request.Origin,
-            Unit = request.Unit,
-            BasePrice = request.BasePrice,
-            IsOrganic = request.IsOrganic,
-            Status = request.Status,
-            CategoryId = request.CategoryId,
-            ProviderId = request.ProviderId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        if (request.Images != null)
-        {
-            foreach (var image in request.Images)
+            var products = await _repository.GetAllAsync();
+            var dtos = new List<ProductDto>();
+            foreach (var product in products)
             {
-                product.ProductImages.Add(new ProductImage
+                dtos.Add(await MapToDto(product));
+            }
+            return dtos;
+        }
+
+        public async Task<PagedResult<ProductDto>> GetPagedAsync(int pageNumber, int pageSize)
+        {
+            var (items, totalCount) = await _repository.GetPagedAsync(pageNumber, pageSize);
+            var dtos = new List<ProductDto>();
+            foreach (var item in items)
+            {
+                dtos.Add(await MapToDto(item));
+            }
+            
+            return new PagedResult<ProductDto>
+            {
+                Items = dtos,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+        }
+
+        public async Task<ProductDto?> GetByIdAsync(Guid id)
+        {
+            var product = await _repository.GetByIdAsync(id);
+            if (product == null) return null;
+            return await MapToDto(product);
+        }
+
+        public async Task<ProductDto> CreateAsync(CreateProductRequest request)
+        {
+            var product = new Product
+            {
+                ProductId = Guid.NewGuid(),
+                ProductName = request.Name,
+                Description = request.Description,
+                Origin = request.Origin,
+                Unit = request.Unit,
+                BasePrice = request.BasePrice,
+                IsOrganic = request.IsOrganic,
+                Status = request.Status,
+                CategoryId = request.CategoryId,
+                ProviderId = request.ProviderId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            if (request.Images != null)
+            {
+                foreach (var image in request.Images)
+                {
+                    product.ProductImages.Add(new ProductImage
+                    {
+                        ImageId = Guid.NewGuid(),
+                        ImageUrl = image.ImageUrl,
+                        IsPrimary = image.IsPrimary,
+                        ProductId = product.ProductId
+                    });
+                }
+            }
+
+            if (request.Variants != null)
+            {
+                foreach (var variant in request.Variants)
+                {
+                    product.ProductVariants.Add(new ProductVariant
+                    {
+                        VariantId = Guid.NewGuid(),
+                        VariantName = variant.VariantName,
+                        Price = variant.Price,
+                        StockQuantity = variant.StockQuantity,
+                        Sku = variant.Sku,
+                        Status = variant.Status,
+                        ProductId = product.ProductId
+                    });
+                }
+            }
+
+            await _repository.AddAsync(product);
+            await _repository.SaveChangesAsync();
+            return (await MapToDto(product));
+        }
+
+        public async Task UpdateAsync(Guid id, UpdateProductRequest request)
+        {
+            var product = await _repository.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException($"Product {id} not found");
+
+            // Update parent product properties
+            if (request.Name != null) product.ProductName = request.Name;
+            if (request.Description != null) product.Description = request.Description;
+            if (request.Origin != null) product.Origin = request.Origin;
+            if (request.Unit != null) product.Unit = request.Unit;
+            if (request.BasePrice.HasValue) product.BasePrice = request.BasePrice.Value;
+            if (request.IsOrganic.HasValue) product.IsOrganic = request.IsOrganic.Value;
+            if (request.Status != null) product.Status = request.Status;
+            if (request.CategoryId.HasValue) product.CategoryId = request.CategoryId.Value;
+            if (request.ProviderId.HasValue) product.ProviderId = request.ProviderId.Value;
+            product.UpdatedAt = DateTime.UtcNow;
+            
+            await _repository.UpdateAsync(product);
+
+            // Update child collections
+            if (request.Images != null)
+            {
+                await _productImageRepository.DeleteRangeAsync(product.ProductImages.ToList());
+                var newImages = request.Images.Select(img => new ProductImage
                 {
                     ImageId = Guid.NewGuid(),
-                    ImageUrl = image.ImageUrl,
-                    IsPrimary = image.IsPrimary,
+                    ImageUrl = img.ImageUrl,
+                    IsPrimary = img.IsPrimary,
                     ProductId = product.ProductId
-                });
+                }).ToList();
+                await _productImageRepository.AddRangeAsync(newImages);
             }
-        }
 
-        if (request.Variants != null)
-        {
-            foreach (var variant in request.Variants)
+            if (request.Variants != null)
             {
-                product.ProductVariants.Add(new ProductVariant
+                await _productVariantRepository.DeleteRangeAsync(product.ProductVariants.ToList());
+                var newVariants = request.Variants.Select(v => new ProductVariant
                 {
                     VariantId = Guid.NewGuid(),
-                    VariantName = variant.VariantName,
-                    Price = variant.Price,
-                    StockQuantity = variant.StockQuantity,
-                    Sku = variant.Sku,
-                    Status = variant.Status,
+                    VariantName = v.VariantName,
+                    Price = v.Price,
+                    StockQuantity = v.StockQuantity,
+                    Sku = v.Sku,
+                    Status = v.Status,
                     ProductId = product.ProductId
-                });
+                }).ToList();
+                await _productVariantRepository.AddRangeAsync(newVariants);
             }
+
+            // Only call SaveChanges once after all operations
+            await _repository.SaveChangesAsync();
         }
 
-        await _repository.AddAsync(product);
-        await _repository.SaveChangesAsync();
-        return (await MapToDto(product));
-    }
-
-    public async Task UpdateAsync(Guid id, UpdateProductRequest request)
-    {
-        var product = await _repository.GetByIdAsync(id)
-            ?? throw new KeyNotFoundException($"Product {id} not found");
-
-        if (request.Name != null) product.ProductName = request.Name;
-        if (request.Description != null) product.Description = request.Description;
-        if (request.Origin != null) product.Origin = request.Origin;
-        if (request.Unit != null) product.Unit = request.Unit;
-        if (request.BasePrice.HasValue) product.BasePrice = request.BasePrice.Value;
-        if (request.IsOrganic.HasValue) product.IsOrganic = request.IsOrganic.Value;
-        if (request.Status != null) product.Status = request.Status;
-        if (request.CategoryId.HasValue) product.CategoryId = request.CategoryId.Value;
-        if (request.ProviderId.HasValue) product.ProviderId = request.ProviderId.Value;
-        product.UpdatedAt = DateTime.UtcNow;
-
-        if (request.Images != null)
+        public async Task DeleteAsync(Guid id)
         {
-            // For simplicity, we'll clear and add new images.
-            // A more sophisticated approach would be to update existing images.
-            product.ProductImages.Clear();
-            foreach (var image in request.Images)
+            await _repository.DeleteAsync(id);
+            await _repository.SaveChangesAsync();
+        }
+
+        private async Task<ProductDto> MapToDto(Product product)
+        {
+            var category = product.CategoryId.HasValue ? await _categoryRepository.GetByIdAsync(product.CategoryId.Value) : null;
+            var provider = product.ProviderId.HasValue ? await _providerRepository.GetByIdAsync(product.ProviderId.Value) : null;
+
+            return new ProductDto
             {
-                product.ProductImages.Add(new ProductImage
+                ProductId = product.ProductId,
+                ProductName = product.ProductName,
+                Description = product.Description,
+                Origin = product.Origin,
+                Unit = product.Unit,
+                BasePrice = product.BasePrice,
+                IsOrganic = product.IsOrganic,
+                Status = product.Status,
+                CreatedAt = product.CreatedAt,
+                UpdatedAt = product.UpdatedAt,
+                CategoryId = product.CategoryId,
+                CategoryName = category?.CategoryName,
+                ProviderId = product.ProviderId,
+                ProviderName = provider?.ProviderName,
+                IsDeleted = product.IsDeleted,
+                ProductImages = product.ProductImages.Select(pi => new ProductImageDto
                 {
-                    ImageId = Guid.NewGuid(),
-                    ImageUrl = image.ImageUrl,
-                    IsPrimary = image.IsPrimary,
+                    ImageId = pi.ImageId,
+                    ImageUrl = pi.ImageUrl,
+                    IsPrimary = pi.IsPrimary,
                     ProductId = product.ProductId
-                });
-            }
-        }
-
-        if (request.Variants != null)
-        {
-            // For simplicity, we'll clear and add new variants.
-            // A more sophisticated approach would be to update existing variants.
-            product.ProductVariants.Clear();
-            foreach (var variant in request.Variants)
-            {
-                product.ProductVariants.Add(new ProductVariant
+                }).ToList(),
+                ProductVariants = product.ProductVariants.Select(pv => new ProductVariantDto
                 {
-                    VariantId = Guid.NewGuid(),
-                    VariantName = variant.VariantName,
-                    Price = variant.Price,
-                    StockQuantity = variant.StockQuantity,
-                    Sku = variant.Sku,
-                    Status = variant.Status,
+                    VariantId = pv.VariantId,
+                    VariantName = pv.VariantName,
+                    Price = pv.Price,
+                    StockQuantity = pv.StockQuantity,
+                    Sku = pv.Sku,
+                    Status = pv.Status,
                     ProductId = product.ProductId
-                });
-            }
+                }).ToList()
+            };
         }
-
-        await _repository.UpdateAsync(product);
-        await _repository.SaveChangesAsync();
-    }
-
-    public async Task DeleteAsync(Guid id)
-    {
-        await _repository.DeleteAsync(id);
-        await _repository.SaveChangesAsync();
-    }
-
-    private async Task<ProductDto> MapToDto(Product product)
-    {
-        var category = product.CategoryId.HasValue ? await _categoryRepository.GetByIdAsync(product.CategoryId.Value) : null;
-        var provider = product.ProviderId.HasValue ? await _providerRepository.GetByIdAsync(product.ProviderId.Value) : null;
-
-        return new ProductDto
-        {
-            ProductId = product.ProductId,
-            ProductName = product.ProductName,
-            Description = product.Description,
-            Origin = product.Origin,
-            Unit = product.Unit,
-            BasePrice = product.BasePrice,
-            IsOrganic = product.IsOrganic,
-            Status = product.Status,
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt,
-            CategoryId = product.CategoryId,
-            CategoryName = category?.CategoryName,
-            ProviderId = product.ProviderId,
-            ProviderName = provider?.ProviderName,
-            IsDeleted = product.IsDeleted,
-            ProductImages = product.ProductImages.Select(pi => new ProductImageDto
-            {
-                ImageId = pi.ImageId,
-                ImageUrl = pi.ImageUrl,
-                IsPrimary = pi.IsPrimary,
-                ProductId = product.ProductId
-            }).ToList(),
-            ProductVariants = product.ProductVariants.Select(pv => new ProductVariantDto
-            {
-                VariantId = pv.VariantId,
-                VariantName = pv.VariantName,
-                Price = pv.Price,
-                StockQuantity = pv.StockQuantity,
-                Sku = pv.Sku,
-                Status = pv.Status,
-                ProductId = product.ProductId
-            }).ToList()
-        };
     }
 }

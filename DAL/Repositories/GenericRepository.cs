@@ -26,7 +26,7 @@ namespace DAL.Repositories
 
             if (typeof(T) == typeof(DAL.Entity.Product))
             {
-                query = query.Include("ProductImages");
+                query = query.Include("ProductImages").Include("ProductVariants");
             }
 
             var all = await query.ToListAsync();
@@ -49,7 +49,7 @@ namespace DAL.Repositories
 
             if (typeof(T) == typeof(DAL.Entity.Product))
             {
-                query = query.Include("ProductImages");
+                query = query.Include("ProductImages").Include("ProductVariants");
             }
 
             if (typeof(T).GetProperty("IsDeleted") != null)
@@ -80,12 +80,11 @@ namespace DAL.Repositories
 
             if (typeof(T) == typeof(DAL.Entity.Product))
             {
-                 query = query.Include("ProductImages");
+                 query = query.Include("ProductImages").Include("ProductVariants");
             }
              
             if (id is Guid guidId)
             {
-                // This is a more robust way to query by primary key for any entity
                 var parameter = Expression.Parameter(typeof(T), "e");
                 var property = Expression.Property(parameter, GetPrimaryKeyPropertyName());
                 var constant = Expression.Constant(guidId);
@@ -128,7 +127,7 @@ namespace DAL.Repositories
 
         public async Task DeleteAsync(object id)
         {
-            var entity = await GetByIdAsync(id); // Use GetByIdAsync to respect IsDeleted flag
+            var entity = await GetByIdAsync(id);
             if (entity != null)
             {
                 var prop = typeof(T).GetProperty("IsDeleted");
@@ -143,6 +142,24 @@ namespace DAL.Repositories
                 }
             }
         }
+        
+        public Task DeleteRangeAsync(IEnumerable<T> entities)
+        {
+            var propInfo = typeof(T).GetProperty("IsDeleted");
+            if (propInfo != null && propInfo.PropertyType == typeof(bool))
+            {
+                foreach (var entity in entities)
+                {
+                    propInfo.SetValue(entity, true);
+                }
+                _dbSet.UpdateRange(entities);
+            }
+            else
+            {
+                _dbSet.RemoveRange(entities);
+            }
+            return Task.CompletedTask;
+        }
 
         public async Task SaveChangesAsync()
         {
@@ -155,7 +172,7 @@ namespace DAL.Repositories
             
             if (typeof(T) == typeof(DAL.Entity.Product))
             {
-                query = query.Include("ProductImages");
+                query = query.Include("ProductImages").Include("ProductVariants");
             }
 
             var results = await query.Where(predicate).ToListAsync();

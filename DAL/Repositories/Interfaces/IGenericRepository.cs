@@ -14,6 +14,7 @@ namespace DAL.Repositories.Interfaces
         Task AddRangeAsync(IEnumerable<T> entities);
         Task UpdateAsync(T entity);
         Task DeleteAsync(object id);
+        Task DeleteRangeAsync(IEnumerable<T> entities);
         Task SaveChangesAsync();
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
         Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate);
