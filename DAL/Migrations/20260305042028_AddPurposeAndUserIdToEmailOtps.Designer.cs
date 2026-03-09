@@ -3,6 +3,7 @@ using System;
 using DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260305042028_AddPurposeAndUserIdToEmailOtps")]
+    partial class AddPurposeAndUserIdToEmailOtps
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,18 +44,9 @@ namespace DAL.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<string>("Description")
-                        .HasColumnType("text")
-                        .HasColumnName("description");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
-
-                    b.Property<string>("Source")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("source");
 
                     b.Property<string>("Status")
                         .HasMaxLength(50)
@@ -60,7 +54,8 @@ namespace DAL.Migrations
                         .HasColumnName("status");
 
                     b.Property<string>("ThumbnailUrl")
-                        .HasColumnType("text")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("thumbnail_url");
 
                     b.Property<string>("Title")
@@ -275,19 +270,9 @@ namespace DAL.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("order_id");
 
-                    b.Property<string>("DeliveryStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("delivery_status");
-
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("discount_amount");
-
-                    b.Property<string>("DistrictCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("district_code");
 
                     b.Property<decimal>("FinalAmount")
                         .HasColumnType("decimal(18,2)")
@@ -306,25 +291,6 @@ namespace DAL.Migrations
                         .HasMaxLength(7)
                         .HasColumnType("character varying(7)")
                         .HasColumnName("order_number");
-
-                    b.Property<string>("ProvinceCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("province_code");
-
-                    b.Property<int?>("ProvinceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("province_id");
-
-                    b.Property<string>("RecipientName")
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)")
-                        .HasColumnName("recipient_name");
-
-                    b.Property<string>("RecipientPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("recipient_phone");
 
                     b.Property<string>("ShippingAddress")
                         .HasMaxLength(500)
@@ -352,11 +318,6 @@ namespace DAL.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("vnpay_status");
-
-                    b.Property<string>("WardCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("ward_code");
 
                     b.HasKey("OrderId");
 
@@ -407,10 +368,6 @@ namespace DAL.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("payment_id");
-
-                    b.Property<decimal?>("CodAmount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("cod_amount");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
@@ -729,120 +686,6 @@ namespace DAL.Migrations
                         .HasDatabaseName("IX_Reviews_UserId_ProductId");
 
                     b.ToTable("Reviews");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Shipment", b =>
-                {
-                    b.Property<Guid>("ShipmentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("shipment_id");
-
-                    b.Property<decimal>("CodAmount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("cod_amount");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("DeliveryStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("delivery_status");
-
-                    b.Property<string>("GhnOrderCode")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("ghn_order_code");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("order_id");
-
-                    b.Property<string>("RawStatus")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("raw_status");
-
-                    b.Property<int?>("ServiceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("service_id");
-
-                    b.Property<decimal>("ShippingFee")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("shipping_fee");
-
-                    b.Property<string>("TrackingUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("tracking_url");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("ShipmentId");
-
-                    b.HasIndex("GhnOrderCode")
-                        .HasDatabaseName("IX_Shipments_GhnOrderCode");
-
-                    b.HasIndex("OrderId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Shipments_OrderId");
-
-                    b.ToTable("Shipments");
-                });
-
-            modelBuilder.Entity("DAL.Entity.ShipmentStatusUpdate", b =>
-                {
-                    b.Property<Guid>("StatusUpdateId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("status_update_id");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<string>("NewStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("new_status");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("note");
-
-                    b.Property<string>("PreviousStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("previous_status");
-
-                    b.Property<string>("RawStatus")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("raw_status");
-
-                    b.Property<Guid>("ShipmentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("shipment_id");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("StatusUpdateId");
-
-                    b.HasIndex("ShipmentId")
-                        .HasDatabaseName("IX_ShipmentStatusUpdates_ShipmentId");
-
-                    b.ToTable("ShipmentStatusUpdates");
                 });
 
             modelBuilder.Entity("DAL.Entity.Transaction", b =>
@@ -1203,28 +1046,6 @@ namespace DAL.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DAL.Entity.Shipment", b =>
-                {
-                    b.HasOne("DAL.Entity.Order", "Order")
-                        .WithOne("Shipment")
-                        .HasForeignKey("DAL.Entity.Shipment", "OrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("DAL.Entity.ShipmentStatusUpdate", b =>
-                {
-                    b.HasOne("DAL.Entity.Shipment", "Shipment")
-                        .WithMany("StatusUpdates")
-                        .HasForeignKey("ShipmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Shipment");
-                });
-
             modelBuilder.Entity("DAL.Entity.Transaction", b =>
                 {
                     b.HasOne("DAL.Entity.Payment", "Payment")
@@ -1268,8 +1089,6 @@ namespace DAL.Migrations
             modelBuilder.Entity("DAL.Entity.Order", b =>
                 {
                     b.Navigation("OrderDetails");
-
-                    b.Navigation("Shipment");
                 });
 
             modelBuilder.Entity("DAL.Entity.Product", b =>
@@ -1277,11 +1096,6 @@ namespace DAL.Migrations
                     b.Navigation("ProductImages");
 
                     b.Navigation("ProductVariants");
-                });
-
-            modelBuilder.Entity("DAL.Entity.Shipment", b =>
-                {
-                    b.Navigation("StatusUpdates");
                 });
 #pragma warning restore 612, 618
         }

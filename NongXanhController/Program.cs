@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using NongXanhController.BackgroundServices;
+using RssFetchingService = BLL.Services.RssFetchingService;
 
 namespace NongXanhController
 {
@@ -56,6 +58,7 @@ namespace NongXanhController
             builder.Services.AddScoped<IGhnService, GhnService>();
             builder.Services.AddScoped<IShipmentService, ShipmentService>();
             builder.Services.AddScoped<IBlogService, BlogService>();
+            builder.Services.AddScoped<IArticleRssService, ArticleRssService>();
 
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IGoogleOAuthService, GoogleOAuthService>();
@@ -72,6 +75,9 @@ namespace NongXanhController
                 client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
             });
+
+            // Register the background service
+            builder.Services.AddHostedService<RssFetchingService>();
 
             builder.Services.AddCors(options =>
             {
@@ -149,7 +155,7 @@ namespace NongXanhController
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                var pendingMigrations = db.Database.GetPendingMigrations();
+                var pendingMigrations = db.Database.GetPendingMigrations().ToList();
                 if (pendingMigrations.Any())
                 {
                     Console.WriteLine($"Áp dụng {pendingMigrations.Count()}  migration(s)...");

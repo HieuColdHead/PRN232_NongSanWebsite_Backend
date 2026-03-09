@@ -17,10 +17,16 @@ public class Blog
 
     [Column("content")]
     public string? Content { get; set; }
+    
+    [Column("description")]
+    public string? Description { get; set; }
 
     [Column("thumbnail_url")]
-    [MaxLength(500)]
     public string? ThumbnailUrl { get; set; }
+    
+    [Column("source")]
+    [MaxLength(255)]
+    public string? Source { get; set; }
 
     [Column("status")]
     [MaxLength(50)]
