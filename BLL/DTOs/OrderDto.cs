@@ -20,6 +20,9 @@ public class OrderDto
     public string? DistrictCode { get; set; }
     public string? WardCode { get; set; }
     public Guid UserId { get; set; }
+    public string? CustomerDisplayName { get; set; }
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhoneNumber { get; set; }
     public ShipmentDto? Shipment { get; set; }
     public List<OrderDetailDto> OrderDetails { get; set; } = new();
 }

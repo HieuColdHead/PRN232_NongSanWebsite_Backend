@@ -470,13 +470,14 @@ public class PaymentService : IPaymentService
     {
         var culture = CultureInfo.GetCultureInfo("vi-VN");
         static string FormatVnd(decimal amount, CultureInfo c) => $"{amount.ToString("N0", c)} VND";
+        var shippingAddress = SanitizeShippingAddress(order.ShippingAddress, order.RecipientName, order.RecipientPhone);
 
         var sb = new StringBuilder();
         sb.AppendLine("Cảm ơn bạn đã đặt hàng COD tại NongXanh!");
         sb.AppendLine();
         sb.AppendLine($"Mã đơn hàng: {order.OrderNumber}");
         sb.AppendLine($"Ngày đặt: {order.OrderDate:dd/MM/yyyy HH:mm}");
-        sb.AppendLine($"Địa chỉ nhận hàng: {order.ShippingAddress ?? "(Không có)"}");
+        sb.AppendLine($"Địa chỉ nhận hàng: {shippingAddress ?? "(Không có)"}");
         sb.AppendLine();
         sb.AppendLine("Chi tiết đơn hàng:");
 
@@ -502,5 +503,76 @@ public class PaymentService : IPaymentService
         sb.AppendLine("Đội ngũ NongXanh");
 
         return sb.ToString();
+    }
+
+    private static string? SanitizeShippingAddress(string? shippingAddress, string? recipientName, string? recipientPhone)
+    {
+        if (string.IsNullOrWhiteSpace(shippingAddress))
+        {
+            return null;
+        }
+
+        var parts = shippingAddress
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+
+        if (parts.Count == 0)
+        {
+            return shippingAddress.Trim();
+        }
+
+        var hasNamePrefix = !string.IsNullOrWhiteSpace(recipientName)
+            && parts[0].Equals(recipientName.Trim(), StringComparison.OrdinalIgnoreCase);
+
+        var phoneIndex = hasNamePrefix ? 1 : 0;
+        var hasPhonePrefix = parts.Count > phoneIndex
+            && IsSamePhone(parts[phoneIndex], recipientPhone);
+
+        if (hasNamePrefix && hasPhonePrefix && parts.Count > 2)
+        {
+            return string.Join(", ", parts.Skip(2));
+        }
+
+        if (!hasNamePrefix && hasPhonePrefix && parts.Count > 1)
+        {
+            return string.Join(", ", parts.Skip(1));
+        }
+
+        if (parts.Count > 2 && !LooksLikePhonePart(parts[0]) && LooksLikePhonePart(parts[1]))
+        {
+            return string.Join(", ", parts.Skip(2));
+        }
+
+        if (parts.Count > 1 && LooksLikePhonePart(parts[0]))
+        {
+            return string.Join(", ", parts.Skip(1));
+        }
+
+        return shippingAddress.Trim();
+    }
+
+    private static bool IsSamePhone(string currentPart, string? expected)
+    {
+        var left = NormalizePhoneNumber(currentPart);
+        var right = NormalizePhoneNumber(expected);
+
+        return !string.IsNullOrEmpty(right)
+            && left.Equals(right, StringComparison.Ordinal);
+    }
+
+    private static bool LooksLikePhonePart(string value)
+    {
+        var digits = NormalizePhoneNumber(value);
+        return digits.Length >= 9 && digits.Length <= 15;
+    }
+
+    private static string NormalizePhoneNumber(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return new string(value.Where(char.IsDigit).ToArray());
     }
 }

@@ -378,7 +378,8 @@ public class ShipmentService : IShipmentService
 
     private GhnCreateOrderRequest BuildCreateOrderRequest(Order order, Payment payment)
     {
-        if (string.IsNullOrWhiteSpace(order.ShippingAddress))
+        var shippingAddress = SanitizeShippingAddress(order.ShippingAddress, order.RecipientName, order.RecipientPhone);
+        if (string.IsNullOrWhiteSpace(shippingAddress))
         {
             throw new InvalidOperationException("Order is missing shipping address.");
         }
@@ -415,7 +416,7 @@ public class ShipmentService : IShipmentService
                 ?? order.User?.DisplayName?.Trim()
                 ?? "Khach hang NongXanh",
             ToPhone = recipientPhone,
-            ToAddress = order.ShippingAddress,
+            ToAddress = shippingAddress,
             ToDistrictId = districtId,
             ToWardCode = order.WardCode,
             InsuranceValue = order.FinalAmount,
@@ -449,6 +450,77 @@ public class ShipmentService : IShipmentService
         return !string.IsNullOrWhiteSpace(productName)
             ? productName
             : variantName ?? "San pham";
+    }
+
+    private static string? SanitizeShippingAddress(string? shippingAddress, string? recipientName, string? recipientPhone)
+    {
+        if (string.IsNullOrWhiteSpace(shippingAddress))
+        {
+            return null;
+        }
+
+        var parts = shippingAddress
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+
+        if (parts.Count == 0)
+        {
+            return shippingAddress.Trim();
+        }
+
+        var hasNamePrefix = !string.IsNullOrWhiteSpace(recipientName)
+            && parts[0].Equals(recipientName.Trim(), StringComparison.OrdinalIgnoreCase);
+
+        var phoneIndex = hasNamePrefix ? 1 : 0;
+        var hasPhonePrefix = parts.Count > phoneIndex
+            && IsSamePhone(parts[phoneIndex], recipientPhone);
+
+        if (hasNamePrefix && hasPhonePrefix && parts.Count > 2)
+        {
+            return string.Join(", ", parts.Skip(2));
+        }
+
+        if (!hasNamePrefix && hasPhonePrefix && parts.Count > 1)
+        {
+            return string.Join(", ", parts.Skip(1));
+        }
+
+        if (parts.Count > 2 && !LooksLikePhonePart(parts[0]) && LooksLikePhonePart(parts[1]))
+        {
+            return string.Join(", ", parts.Skip(2));
+        }
+
+        if (parts.Count > 1 && LooksLikePhonePart(parts[0]))
+        {
+            return string.Join(", ", parts.Skip(1));
+        }
+
+        return shippingAddress.Trim();
+    }
+
+    private static bool IsSamePhone(string currentPart, string? expected)
+    {
+        var left = NormalizePhoneNumber(currentPart);
+        var right = NormalizePhoneNumber(expected);
+
+        return !string.IsNullOrEmpty(right)
+            && left.Equals(right, StringComparison.Ordinal);
+    }
+
+    private static bool LooksLikePhonePart(string value)
+    {
+        var digits = NormalizePhoneNumber(value);
+        return digits.Length >= 9 && digits.Length <= 15;
+    }
+
+    private static string NormalizePhoneNumber(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return new string(value.Where(char.IsDigit).ToArray());
     }
 
     private static void ApplyOrderStatusTransition(Order order, string deliveryStatus)

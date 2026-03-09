@@ -90,11 +90,13 @@ public class OrderService : IOrderService
 
     public async Task<OrderDto> CreateAsync(CreateOrderRequest request)
     {
+        var sanitizedShippingAddress = SanitizeShippingAddress(request.ShippingAddress, recipientName: null, recipientPhone: null);
+
         var order = new Order
         {
             OrderDate = DateTime.UtcNow,
             ShippingFee = request.ShippingFee,
-            ShippingAddress = request.ShippingAddress,
+            ShippingAddress = sanitizedShippingAddress,
             ProvinceId = request.ProvinceId,
             UserId = request.UserId,
             Status = "Pending",
@@ -197,6 +199,10 @@ public class OrderService : IOrderService
         }
 
         var normalizedPaymentMethod = NormalizePaymentMethod(request.PaymentMethod);
+        var sanitizedShippingAddress = SanitizeShippingAddress(
+            request.ShippingAddress,
+            request.RecipientName,
+            request.RecipientPhone);
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
         Order order;
@@ -236,7 +242,7 @@ public class OrderService : IOrderService
             {
                 OrderDate = DateTime.UtcNow,
                 ShippingFee = shippingFee,
-                ShippingAddress = request.ShippingAddress,
+                ShippingAddress = sanitizedShippingAddress,
                 UserId = userId,
                 RecipientName = request.RecipientName?.Trim(),
                 RecipientPhone = request.RecipientPhone?.Trim(),
@@ -306,7 +312,7 @@ public class OrderService : IOrderService
             ?? throw new KeyNotFoundException($"Order {id} not found");
 
         if (request.ShippingAddress != null)
-            order.ShippingAddress = request.ShippingAddress;
+            order.ShippingAddress = SanitizeShippingAddress(request.ShippingAddress, order.RecipientName, order.RecipientPhone);
         if (request.ProvinceId.HasValue)
             order.ProvinceId = request.ProvinceId;
         if (request.Status != null)
@@ -355,6 +361,82 @@ public class OrderService : IOrderService
         }
 
         throw new ArgumentException("Unsupported payment method. Allowed values: COD, VNPay.", nameof(paymentMethod));
+    }
+
+    private static string SanitizeShippingAddress(string? shippingAddress, string? recipientName, string? recipientPhone)
+    {
+        if (string.IsNullOrWhiteSpace(shippingAddress))
+        {
+            return string.Empty;
+        }
+
+        var parts = shippingAddress
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+
+        if (parts.Count == 0)
+        {
+            return shippingAddress.Trim();
+        }
+
+        var hasNamePrefix = parts.Count > 0 && IsSameText(parts[0], recipientName);
+        var phoneIndex = hasNamePrefix ? 1 : 0;
+        var hasPhonePrefix = parts.Count > phoneIndex && IsSamePhone(parts[phoneIndex], recipientPhone);
+
+        if (hasNamePrefix && hasPhonePrefix && parts.Count > 2)
+        {
+            return string.Join(", ", parts.Skip(2));
+        }
+
+        if (!hasNamePrefix && hasPhonePrefix && parts.Count > 1)
+        {
+            return string.Join(", ", parts.Skip(1));
+        }
+
+        // Fallback for flows that do not send recipient fields (or old rows with mismatched data):
+        // if address starts with "Name, Phone, ..." then keep only the real address part.
+        if (parts.Count > 2 && !LooksLikePhonePart(parts[0]) && LooksLikePhonePart(parts[1]))
+        {
+            return string.Join(", ", parts.Skip(2));
+        }
+
+        if (parts.Count > 1 && LooksLikePhonePart(parts[0]))
+        {
+            return string.Join(", ", parts.Skip(1));
+        }
+
+        return shippingAddress.Trim();
+    }
+
+    private static bool IsSameText(string currentPart, string? expected)
+    {
+        return !string.IsNullOrWhiteSpace(expected)
+            && currentPart.Trim().Equals(expected.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSamePhone(string currentPart, string? expected)
+    {
+        var left = NormalizePhoneNumber(currentPart);
+        var right = NormalizePhoneNumber(expected);
+
+        return !string.IsNullOrEmpty(right)
+            && left.Equals(right, StringComparison.Ordinal);
+    }
+
+    private static string NormalizePhoneNumber(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return new string(value.Where(char.IsDigit).ToArray());
+    }
+
+    private static bool LooksLikePhonePart(string value)
+    {
+        var digits = NormalizePhoneNumber(value);
+        return digits.Length >= 9 && digits.Length <= 15;
     }
 
     private static void ValidateGhnDestination(string? toWardCode)
@@ -590,6 +672,14 @@ public class OrderService : IOrderService
 
     private async Task<OrderDto> MapToDto(Order order)
     {
+        var customer = order.User;
+        if (customer == null)
+        {
+            customer = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == order.UserId);
+        }
+
         // Load order details with ProductVariant -> Product -> ProductImages
         var orderDetails = await _context.Set<OrderDetail>()
             .Where(d => d.OrderId == order.OrderId)
@@ -602,6 +692,8 @@ public class OrderService : IOrderService
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.OrderId == order.OrderId && !s.IsDeleted);
 
+        var sanitizedShippingAddress = SanitizeShippingAddress(order.ShippingAddress, order.RecipientName, order.RecipientPhone);
+
         return new OrderDto
         {
             OrderId = order.OrderId,
@@ -611,7 +703,7 @@ public class OrderService : IOrderService
             ShippingFee = order.ShippingFee,
             DiscountAmount = order.DiscountAmount,
             FinalAmount = order.FinalAmount,
-            ShippingAddress = order.ShippingAddress,
+            ShippingAddress = sanitizedShippingAddress,
             Status = order.Status,
             VnPayStatus = order.VnPayStatus,
             DeliveryStatus = order.DeliveryStatus,
@@ -622,6 +714,9 @@ public class OrderService : IOrderService
             DistrictCode = order.DistrictCode,
             WardCode = order.WardCode,
             UserId = order.UserId,
+            CustomerDisplayName = customer?.DisplayName,
+            CustomerEmail = customer?.Email,
+            CustomerPhoneNumber = customer?.PhoneNumber,
             Shipment = shipment == null
                 ? null
                 : new ShipmentDto
