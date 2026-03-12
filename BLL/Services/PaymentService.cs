@@ -61,14 +61,7 @@ public class PaymentService : IPaymentService
 
         if (IsCodPaymentMethod(request.PaymentMethod))
         {
-            try
-            {
-                await SendOrderConfirmationEmailAsync(request.OrderId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to send COD order confirmation email for OrderId {OrderId}", request.OrderId);
-            }
+            await TrySendOrderConfirmationEmailAsync(request.OrderId, "COD");
         }
 
         return MapToDto(payment);
@@ -299,6 +292,7 @@ public class PaymentService : IPaymentService
         if (paymentSuccess && result.OrderId.HasValue)
         {
             await TryCreateShipmentForPaidVnPayOrderAsync(result.OrderId.Value);
+            await TrySendOrderConfirmationEmailAsync(result.OrderId.Value, "VNPay");
         }
 
         result.Message = paymentSuccess ? "VNPay payment confirmed." : "VNPay payment failed.";
@@ -329,6 +323,22 @@ public class PaymentService : IPaymentService
             _logger.LogWarning(
                 ex,
                 "Failed to create shipment after VNPay payment success for OrderId {OrderId}",
+                orderId);
+        }
+    }
+
+    private async Task TrySendOrderConfirmationEmailAsync(Guid orderId, string paymentMethod)
+    {
+        try
+        {
+            await SendOrderConfirmationEmailAsync(orderId, paymentMethod);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to send {PaymentMethod} order confirmation email for OrderId {OrderId}",
+                paymentMethod,
                 orderId);
         }
     }
@@ -445,7 +455,7 @@ public class PaymentService : IPaymentService
             signData);
     }
 
-    private async Task SendOrderConfirmationEmailAsync(Guid orderId)
+    private async Task SendOrderConfirmationEmailAsync(Guid orderId, string paymentMethod)
     {
         var order = await _context.Set<Order>()
             .AsNoTracking()
@@ -461,19 +471,24 @@ public class PaymentService : IPaymentService
             return;
         }
 
-        var subject = $"[NongXanh] Xác nhận đơn hàng COD #{order.OrderNumber}";
-        var body = BuildOrderConfirmationBody(order);
+        var isVnPay = paymentMethod.Equals("VNPay", StringComparison.OrdinalIgnoreCase);
+        var subject = isVnPay
+            ? $"[NongXanh] Xác nhận thanh toán VNPay đơn hàng #{order.OrderNumber}"
+            : $"[NongXanh] Xác nhận đơn hàng COD #{order.OrderNumber}";
+        var body = BuildOrderConfirmationBody(order, isVnPay);
         await _emailSender.SendAsync(email, subject, body);
     }
 
-    private static string BuildOrderConfirmationBody(Order order)
+    private static string BuildOrderConfirmationBody(Order order, bool isVnPay)
     {
         var culture = CultureInfo.GetCultureInfo("vi-VN");
         static string FormatVnd(decimal amount, CultureInfo c) => $"{amount.ToString("N0", c)} VND";
         var shippingAddress = SanitizeShippingAddress(order.ShippingAddress, order.RecipientName, order.RecipientPhone);
 
         var sb = new StringBuilder();
-        sb.AppendLine("Cảm ơn bạn đã đặt hàng COD tại NongXanh!");
+        sb.AppendLine(isVnPay
+            ? "Cảm ơn bạn đã thanh toán đơn hàng qua VNPay tại NongXanh!"
+            : "Cảm ơn bạn đã đặt hàng COD tại NongXanh!");
         sb.AppendLine();
         sb.AppendLine($"Mã đơn hàng: {order.OrderNumber}");
         sb.AppendLine($"Ngày đặt: {order.OrderDate:dd/MM/yyyy HH:mm}");
@@ -496,8 +511,13 @@ public class PaymentService : IPaymentService
         sb.AppendLine($"Tạm tính: {FormatVnd(order.TotalAmount, culture)}");
         sb.AppendLine($"Phí vận chuyển: {FormatVnd(order.ShippingFee, culture)}");
         sb.AppendLine($"Giảm giá: {FormatVnd(order.DiscountAmount, culture)}");
-        sb.AppendLine($"Tổng thanh toán (COD): {FormatVnd(order.FinalAmount, culture)}");
+        sb.AppendLine($"Tổng thanh toán ({(isVnPay ? "VNPay" : "COD")}): {FormatVnd(order.FinalAmount, culture)}");
         sb.AppendLine();
+        if (isVnPay)
+        {
+            sb.AppendLine("Chúng tôi đã ghi nhận thanh toán thành công qua VNPay.");
+        }
+
         sb.AppendLine("Đơn hàng sẽ được xử lý và giao đến bạn sớm nhất có thể.");
         sb.AppendLine("Trân trọng,");
         sb.AppendLine("Đội ngũ NongXanh");

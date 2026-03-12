@@ -122,6 +122,29 @@ public class OrdersController : BaseApiController
         }
     }
 
+    [HttpPost("shipments/sync-all")]
+    public async Task<ActionResult<ApiResponse<ShipmentBulkSyncResultDto>>> SyncAllShipments()
+    {
+        if (!IsAdminOrStaff())
+        {
+            return ErrorResponse<ShipmentBulkSyncResultDto>("Forbidden", statusCode: 403);
+        }
+
+        try
+        {
+            var result = await _shipmentService.SyncAllShipmentsStatusFromGhnAsync();
+            return SuccessResponse(result, "All shipments synchronized from GHN successfully");
+        }
+        catch (ArgumentException ex)
+        {
+            return ErrorResponse<ShipmentBulkSyncResultDto>(ex.Message, statusCode: 400);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<ShipmentBulkSyncResultDto>(ex.Message, statusCode: 400);
+        }
+    }
+
     [HttpPost]
     public async Task<ActionResult<ApiResponse<OrderDto>>> PostOrder(CreateOrderRequest request)
     {

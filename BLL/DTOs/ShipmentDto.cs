@@ -25,3 +25,19 @@ public class ShipmentStatusUpdateDto
     public string? Note { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
+
+public class ShipmentBulkSyncResultDto
+{
+    public int TotalCandidates { get; set; }
+    public int SyncedCount { get; set; }
+    public int FailedCount { get; set; }
+    public DateTime SyncedAt { get; set; }
+    public List<ShipmentBulkSyncFailureDto> Failures { get; set; } = new();
+}
+
+public class ShipmentBulkSyncFailureDto
+{
+    public Guid OrderId { get; set; }
+    public string? GhnOrderCode { get; set; }
+    public string Error { get; set; } = string.Empty;
+}

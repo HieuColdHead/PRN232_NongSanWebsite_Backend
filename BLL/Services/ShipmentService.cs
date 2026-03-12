@@ -270,6 +270,58 @@ public class ShipmentService : IShipmentService
         return MapToDto(shipment);
     }
 
+    public async Task<ShipmentBulkSyncResultDto> SyncAllShipmentsStatusFromGhnAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_ghnService.IsConfigured())
+        {
+            throw new InvalidOperationException(
+                "GHN is not configured. Please configure Ghn section in appsettings before syncing.");
+        }
+
+        var candidates = await _context.Shipments
+            .AsNoTracking()
+            .Where(s => !s.IsDeleted && !string.IsNullOrWhiteSpace(s.GhnOrderCode))
+            .Select(s => new
+            {
+                s.OrderId,
+                s.GhnOrderCode
+            })
+            .ToListAsync(cancellationToken);
+
+        var result = new ShipmentBulkSyncResultDto
+        {
+            TotalCandidates = candidates.Count,
+            SyncedAt = DateTime.UtcNow
+        };
+
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                await SyncShipmentStatusFromGhnAsync(candidate.OrderId, cancellationToken);
+                result.SyncedCount++;
+            }
+            catch (Exception ex)
+            {
+                result.Failures.Add(new ShipmentBulkSyncFailureDto
+                {
+                    OrderId = candidate.OrderId,
+                    GhnOrderCode = candidate.GhnOrderCode,
+                    Error = ex.Message
+                });
+
+                _logger.LogWarning(
+                    ex,
+                    "Bulk GHN shipment sync failed for OrderId {OrderId}, GhnOrderCode {GhnOrderCode}",
+                    candidate.OrderId,
+                    candidate.GhnOrderCode);
+            }
+        }
+
+        result.FailedCount = result.Failures.Count;
+        return result;
+    }
+
     public async Task ProcessGhnWebhookAsync(GhnWebhookRequest request, string? tokenHeader, CancellationToken cancellationToken = default)
     {
         if (request == null)
