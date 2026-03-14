@@ -1,6 +1,22 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace BLL.DTOs.Ghn;
+
+internal sealed class WardCodeConverter : JsonConverter<string>
+{
+    public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Number && reader.TryGetInt64(out var num))
+            return num.ToString();
+        if (reader.TokenType == JsonTokenType.String)
+            return reader.GetString() ?? string.Empty;
+        throw new JsonException($"Unexpected token {reader.TokenType} for WardCode.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options) =>
+        writer.WriteStringValue(value);
+}
 
 public class GhnCalculateFeeRequest
 {
@@ -62,6 +78,30 @@ public class GhnShippingOrderDetailResponse
 
     [JsonPropertyName("updated_date")]
     public DateTime? UpdatedDate { get; set; }
+}
+
+/// <summary>Province from GHN master-data for address picker.</summary>
+public class GhnProvinceDto
+{
+    public int ProvinceID { get; set; }
+    public string ProvinceName { get; set; } = string.Empty;
+}
+
+/// <summary>District from GHN master-data for address picker.</summary>
+public class GhnDistrictDto
+{
+    public int DistrictID { get; set; }
+    public int ProvinceID { get; set; }
+    public string DistrictName { get; set; } = string.Empty;
+}
+
+/// <summary>Ward from GHN master-data for address picker.</summary>
+public class GhnWardDto
+{
+    [JsonConverter(typeof(WardCodeConverter))]
+    public string WardCode { get; set; } = string.Empty;
+    public int DistrictID { get; set; }
+    public string WardName { get; set; } = string.Empty;
 }
 
 public class GhnWebhookRequest

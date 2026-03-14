@@ -42,6 +42,33 @@ public sealed class GhnService : IGhnService
         return hasApiUrl && hasToken && hasShopId;
     }
 
+    public async Task<List<GhnProvinceDto>> GetProvincesAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+        var list = await GetAsync<List<GhnProvinceDto>>("master-data/province", cancellationToken);
+        return list ?? new List<GhnProvinceDto>();
+    }
+
+    public async Task<List<GhnDistrictDto>> GetDistrictsAsync(int provinceId, CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+        var list = await PostAsync<List<GhnDistrictDto>>(
+            "master-data/district",
+            new Dictionary<string, object?> { ["province_id"] = provinceId },
+            cancellationToken);
+        return list ?? new List<GhnDistrictDto>();
+    }
+
+    public async Task<List<GhnWardDto>> GetWardsAsync(int districtId, CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+        var list = await PostAsync<List<GhnWardDto>>(
+            "master-data/ward",
+            new Dictionary<string, object?> { ["district_id"] = districtId },
+            cancellationToken);
+        return list ?? new List<GhnWardDto>();
+    }
+
     public bool ValidateWebhookToken(string? tokenHeader)
     {
         var expected = _configuration["Ghn:WebhookToken"]?.Trim();
