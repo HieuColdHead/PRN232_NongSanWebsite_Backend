@@ -1,7 +1,9 @@
 using BLL.DTOs;
 using BLL.Services.Interfaces;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using System.Linq;
 
 namespace NongXanhController.Controllers;
@@ -12,11 +14,13 @@ public class PaymentsController : BaseApiController
 {
     private readonly IPaymentService _service;
     private readonly IOrderService _orderService;
+    private readonly IConfiguration _configuration;
 
-    public PaymentsController(IPaymentService service, IOrderService orderService)
+    public PaymentsController(IPaymentService service, IOrderService orderService, IConfiguration configuration)
     {
         _service = service;
         _orderService = orderService;
+        _configuration = configuration;
     }
 
     [HttpGet("order/{orderId}")]
@@ -109,7 +113,62 @@ public class PaymentsController : BaseApiController
     public async Task<ActionResult<ApiResponse<VnPayReturnResult>>> VnPayReturn()
     {
         var query = Request.Query.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+        var frontendReturnUrl = _configuration["VnPay:FrontendReturnUrl"]?.Trim();
 
+        try
+        {
+            var result = await _service.ProcessVnPayReturnAsync(query);
+            if (!string.IsNullOrWhiteSpace(frontendReturnUrl))
+            {
+                return Redirect(BuildFrontendReturnUrl(frontendReturnUrl, query, result));
+            }
+
+            if (!result.SignatureValid)
+            {
+                return ErrorResponse<VnPayReturnResult>(result.Message ?? "Invalid VNPay signature.", statusCode: 400);
+            }
+
+            if (!result.PaymentSuccess)
+            {
+                return ErrorResponse<VnPayReturnResult>(result.Message ?? "VNPay payment failed.", statusCode: 400);
+            }
+
+            return SuccessResponse(result, "VNPay payment callback processed successfully");
+        }
+        catch (ArgumentException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(frontendReturnUrl))
+            {
+                return Redirect(BuildFrontendReturnUrl(frontendReturnUrl, query, new VnPayReturnResult
+                {
+                    SignatureValid = false,
+                    PaymentSuccess = false,
+                    Message = ex.Message
+                }));
+            }
+
+            return ErrorResponse<VnPayReturnResult>(ex.Message, statusCode: 400);
+        }
+        catch (InvalidOperationException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(frontendReturnUrl))
+            {
+                return Redirect(BuildFrontendReturnUrl(frontendReturnUrl, query, new VnPayReturnResult
+                {
+                    SignatureValid = false,
+                    PaymentSuccess = false,
+                    Message = ex.Message
+                }));
+            }
+
+            return ErrorResponse<VnPayReturnResult>(ex.Message, statusCode: 400);
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("vnpay/confirm")]
+    public async Task<ActionResult<ApiResponse<VnPayReturnResult>>> VnPayConfirmFromClient([FromBody] Dictionary<string, string> query)
+    {
         try
         {
             var result = await _service.ProcessVnPayReturnAsync(query);
@@ -123,7 +182,7 @@ public class PaymentsController : BaseApiController
                 return ErrorResponse<VnPayReturnResult>(result.Message ?? "VNPay payment failed.", statusCode: 400);
             }
 
-            return SuccessResponse(result, "VNPay payment callback processed successfully");
+            return SuccessResponse(result, "VNPay payment confirmed successfully");
         }
         catch (ArgumentException ex)
         {
@@ -148,5 +207,53 @@ public class PaymentsController : BaseApiController
 
         var payment = await _service.UpdateStatusAsync(id, status);
         return SuccessResponse(payment, "Payment status updated");
+    }
+
+    private static string BuildFrontendReturnUrl(string frontendReturnUrl, Dictionary<string, string> originalQuery, VnPayReturnResult result)
+    {
+        var queryBuilder = new QueryBuilder();
+
+        foreach (var kv in originalQuery)
+        {
+            if (!string.IsNullOrWhiteSpace(kv.Key) && kv.Value != null)
+            {
+                queryBuilder.Add(kv.Key, kv.Value);
+            }
+        }
+
+        queryBuilder.Add("nx_signatureValid", result.SignatureValid ? "1" : "0");
+        queryBuilder.Add("nx_paymentSuccess", result.PaymentSuccess ? "1" : "0");
+
+        if (!string.IsNullOrWhiteSpace(result.ResponseCode))
+        {
+            queryBuilder.Add("nx_responseCode", result.ResponseCode);
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.TransactionStatus))
+        {
+            queryBuilder.Add("nx_transactionStatus", result.TransactionStatus);
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.TxnRef))
+        {
+            queryBuilder.Add("nx_txnRef", result.TxnRef);
+        }
+
+        if (result.OrderId.HasValue)
+        {
+            queryBuilder.Add("nx_orderId", result.OrderId.Value.ToString());
+        }
+
+        if (result.PaymentId.HasValue)
+        {
+            queryBuilder.Add("nx_paymentId", result.PaymentId.Value.ToString());
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.Message))
+        {
+            queryBuilder.Add("nx_message", result.Message);
+        }
+
+        return $"{frontendReturnUrl}{queryBuilder.ToQueryString()}";
     }
 }

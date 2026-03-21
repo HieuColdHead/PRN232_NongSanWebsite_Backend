@@ -130,7 +130,7 @@ public class PaymentService : IPaymentService
         var tmnCode = GetRequiredConfig("VnPay:TmnCode");
         var hashSecret = GetRequiredConfig("VnPay:HashSecret");
         var baseUrl = GetRequiredConfig("VnPay:BaseUrl");
-        var returnUrl = GetRequiredConfig("VnPay:ReturnUrl");
+        var returnUrl = GetOptionalConfig("VnPay:ApiReturnUrl") ?? GetRequiredConfig("VnPay:ReturnUrl");
         var txnRef = BuildTxnRef(order.OrderId);
         var amount = order.FinalAmount;
 
@@ -248,11 +248,36 @@ public class PaymentService : IPaymentService
             result.Message = "Transaction already confirmed.";
             result.PaymentId = transaction.PaymentId;
 
-            var existingOrderId = transaction.Payment?.OrderId;
+            var existingPayment = transaction.Payment
+                ?? await _context.Payments.FirstOrDefaultAsync(p => p.PaymentId == transaction.PaymentId && !p.IsDeleted);
+
+            if (existingPayment != null)
+            {
+                if (!string.Equals(existingPayment.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase))
+                {
+                    existingPayment.PaymentStatus = "Paid";
+                    existingPayment.PaidAt ??= DateTime.UtcNow;
+                }
+            }
+
+            var existingOrderId = existingPayment?.OrderId;
             result.OrderId = existingOrderId;
 
             if (existingOrderId.HasValue)
             {
+                var existingOrder = await _context.Orders
+                    .FirstOrDefaultAsync(o => o.OrderId == existingOrderId.Value && !o.IsDeleted);
+
+                if (existingOrder != null)
+                {
+                    existingOrder.VnPayStatus = "Paid";
+                    if (string.Equals(existingOrder.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                    {
+                        existingOrder.Status = "Confirmed";
+                    }
+                }
+
+                await _context.SaveChangesAsync();
                 await TryCreateShipmentForPaidVnPayOrderAsync(existingOrderId.Value);
             }
 
@@ -365,6 +390,12 @@ public class PaymentService : IPaymentService
         }
 
         return value;
+    }
+
+    private string? GetOptionalConfig(string key)
+    {
+        var value = _configuration[key]?.Trim();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     private static string NormalizeIpAddress(string? ip)
