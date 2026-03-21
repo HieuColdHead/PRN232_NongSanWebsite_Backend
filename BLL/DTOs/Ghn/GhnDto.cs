@@ -2,6 +2,28 @@ using System.Text.Json.Serialization;
 
 namespace BLL.DTOs.Ghn;
 
+public class GhnProvinceLookupDto
+{
+    public int ProvinceId { get; set; }
+    public string ProvinceName { get; set; } = string.Empty;
+    public string? Code { get; set; }
+}
+
+public class GhnDistrictLookupDto
+{
+    public int DistrictId { get; set; }
+    public int ProvinceId { get; set; }
+    public string DistrictName { get; set; } = string.Empty;
+    public string? Code { get; set; }
+}
+
+public class GhnWardLookupDto
+{
+    public string WardCode { get; set; } = string.Empty;
+    public int DistrictId { get; set; }
+    public string WardName { get; set; } = string.Empty;
+}
+
 public class GhnCalculateFeeRequest
 {
     public int ToDistrictId { get; set; }

@@ -59,6 +59,83 @@ public sealed class GhnService : IGhnService
             && string.Equals(expected, tokenHeader.Trim(), StringComparison.Ordinal);
     }
 
+    public async Task<List<GhnProvinceLookupDto>> GetProvincesAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        var provinces = await GetAsync<List<GhnProvinceData>>("master-data/province", cancellationToken);
+
+        return provinces
+            .Where(p => p.ProvinceID > 0)
+            .Select(p => new GhnProvinceLookupDto
+            {
+                ProvinceId = p.ProvinceID,
+                ProvinceName = p.ProvinceName?.Trim() ?? string.Empty,
+                Code = string.IsNullOrWhiteSpace(p.Code) ? null : p.Code.Trim()
+            })
+            .OrderBy(p => p.ProvinceName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<List<GhnDistrictLookupDto>> GetDistrictsAsync(int provinceId, CancellationToken cancellationToken = default)
+    {
+        if (provinceId <= 0)
+        {
+            throw new ArgumentException("provinceId must be greater than 0.", nameof(provinceId));
+        }
+
+        EnsureConfigured();
+
+        var districts = await PostAsync<List<GhnDistrictData>>(
+            "master-data/district",
+            new Dictionary<string, object?>
+            {
+                ["province_id"] = provinceId
+            },
+            cancellationToken);
+
+        return districts
+            .Where(d => d.DistrictID > 0)
+            .Select(d => new GhnDistrictLookupDto
+            {
+                DistrictId = d.DistrictID,
+                ProvinceId = d.ProvinceID,
+                DistrictName = d.DistrictName?.Trim() ?? string.Empty,
+                Code = string.IsNullOrWhiteSpace(d.Code) ? null : d.Code.Trim()
+            })
+            .OrderBy(d => d.DistrictName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<List<GhnWardLookupDto>> GetWardsAsync(int districtId, CancellationToken cancellationToken = default)
+    {
+        if (districtId <= 0)
+        {
+            throw new ArgumentException("districtId must be greater than 0.", nameof(districtId));
+        }
+
+        EnsureConfigured();
+
+        var wards = await PostAsync<List<GhnWardData>>(
+            "master-data/ward",
+            new Dictionary<string, object?>
+            {
+                ["district_id"] = districtId
+            },
+            cancellationToken);
+
+        return wards
+            .Where(w => !string.IsNullOrWhiteSpace(w.WardCode))
+            .Select(w => new GhnWardLookupDto
+            {
+                WardCode = w.WardCode!.Trim(),
+                DistrictId = w.DistrictID,
+                WardName = w.WardName?.Trim() ?? string.Empty
+            })
+            .OrderBy(w => w.WardName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     public async Task<int> ResolveDistrictIdByWardAsync(
         string wardCode,
         int? provinceId = null,
@@ -526,17 +603,38 @@ public sealed class GhnService : IGhnService
     {
         [JsonPropertyName("ProvinceID")]
         public int ProvinceID { get; set; }
+
+        [JsonPropertyName("ProvinceName")]
+        public string? ProvinceName { get; set; }
+
+        [JsonPropertyName("Code")]
+        public string? Code { get; set; }
     }
 
     private sealed class GhnDistrictData
     {
         [JsonPropertyName("DistrictID")]
         public int DistrictID { get; set; }
+
+        [JsonPropertyName("ProvinceID")]
+        public int ProvinceID { get; set; }
+
+        [JsonPropertyName("DistrictName")]
+        public string? DistrictName { get; set; }
+
+        [JsonPropertyName("Code")]
+        public string? Code { get; set; }
     }
 
     private sealed class GhnWardData
     {
         [JsonPropertyName("WardCode")]
         public string? WardCode { get; set; }
+
+        [JsonPropertyName("DistrictID")]
+        public int DistrictID { get; set; }
+
+        [JsonPropertyName("WardName")]
+        public string? WardName { get; set; }
     }
 }
