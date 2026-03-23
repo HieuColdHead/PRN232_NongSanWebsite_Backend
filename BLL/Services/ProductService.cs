@@ -1,4 +1,4 @@
-﻿using BLL.DTOs;
+using BLL.DTOs;
 using BLL.Services.Interfaces;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
@@ -77,6 +77,7 @@ namespace BLL.Services
                 Origin = request.Origin,
                 Unit = request.Unit,
                 BasePrice = request.BasePrice,
+                DiscountPrice = request.DiscountPrice,
                 IsOrganic = request.IsOrganic,
                 Status = request.Status,
                 CategoryId = request.CategoryId,
@@ -131,6 +132,7 @@ namespace BLL.Services
             if (request.Origin != null) product.Origin = request.Origin;
             if (request.Unit != null) product.Unit = request.Unit;
             if (request.BasePrice.HasValue) product.BasePrice = request.BasePrice.Value;
+            if (request.DiscountPrice.HasValue) product.DiscountPrice = request.DiscountPrice.Value;
             if (request.IsOrganic.HasValue) product.IsOrganic = request.IsOrganic.Value;
             if (request.Status != null) product.Status = request.Status;
             if (request.CategoryId.HasValue) product.CategoryId = request.CategoryId.Value;
@@ -192,6 +194,8 @@ namespace BLL.Services
                 Origin = product.Origin,
                 Unit = product.Unit,
                 BasePrice = product.BasePrice,
+                DiscountPrice = product.DiscountPrice,
+                Quantity = product.ProductVariants.Sum(v => v.StockQuantity),
                 IsOrganic = product.IsOrganic,
                 Status = product.Status,
                 CreatedAt = product.CreatedAt,

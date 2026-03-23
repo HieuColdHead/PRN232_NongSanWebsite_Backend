@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DAL.Entity;
@@ -28,6 +28,9 @@ public class Product
 
     [Column("base_price")]
     public decimal BasePrice { get; set; }
+
+    [Column("discount_price")]
+    public decimal? DiscountPrice { get; set; }
 
     [Column("is_organic")]
     public bool IsOrganic { get; set; }

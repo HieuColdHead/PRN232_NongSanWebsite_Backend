@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BLL.DTOs;
@@ -11,6 +11,8 @@ public class ProductDto
     public string? Origin { get; set; }
     public string? Unit { get; set; }
     public decimal BasePrice { get; set; }
+    public decimal? DiscountPrice { get; set; }
+    public int Quantity { get; set; }
     public bool IsOrganic { get; set; }
     public string? Status { get; set; }
     public DateTime CreatedAt { get; set; }

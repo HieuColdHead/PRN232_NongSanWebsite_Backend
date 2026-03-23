@@ -17,6 +17,8 @@ public class UpdateProductRequest
 
     public decimal? BasePrice { get; set; }
 
+    public decimal? DiscountPrice { get; set; }
+
     public bool? IsOrganic { get; set; }
 
     [MaxLength(50)]

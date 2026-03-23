@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace BLL.DTOs;
 
@@ -17,6 +17,8 @@ public class CreateProductRequest
     public string? Unit { get; set; }
 
     public decimal BasePrice { get; set; }
+
+    public decimal? DiscountPrice { get; set; }
 
     public bool IsOrganic { get; set; }
 

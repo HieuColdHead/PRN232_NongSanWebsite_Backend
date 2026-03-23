@@ -20,7 +20,9 @@ public class WishlistService : IWishlistService
     {
         var query = _context.Wishlists
             .Include(w => w.Product)
-            .ThenInclude(p => p.ProductImages)
+                .ThenInclude(p => p.ProductImages)
+            .Include(w => w.Product)
+                .ThenInclude(p => p.ProductVariants)
             .Where(w => w.UserId == userId);
 
         var totalCount = await query.CountAsync();
@@ -36,6 +38,8 @@ public class WishlistService : IWishlistService
                 ProductId = w.ProductId,
                 ProductName = w.Product!.ProductName,
                 ProductPrice = w.Product.BasePrice,
+                DiscountPrice = w.Product.DiscountPrice,
+                Quantity = w.Product.ProductVariants.Sum(v => v.StockQuantity),
                 ProductImageUrl = w.Product.ProductImages.FirstOrDefault()!.ImageUrl,
                 CreatedAt = w.CreatedAt
             })
@@ -78,6 +82,7 @@ public class WishlistService : IWishlistService
 
         var addedProduct = await _context.Products
             .Include(p => p.ProductImages)
+            .Include(p => p.ProductVariants)
             .FirstOrDefaultAsync(p => p.ProductId == request.ProductId);
 
         return new WishlistDto
@@ -87,6 +92,8 @@ public class WishlistService : IWishlistService
             ProductId = wishlist.ProductId,
             ProductName = addedProduct?.ProductName,
             ProductPrice = addedProduct?.BasePrice ?? 0,
+            DiscountPrice = addedProduct?.DiscountPrice,
+            Quantity = addedProduct?.ProductVariants?.Sum(v => v.StockQuantity) ?? 0,
             ProductImageUrl = addedProduct?.ProductImages?.FirstOrDefault()?.ImageUrl,
             CreatedAt = wishlist.CreatedAt
         };
