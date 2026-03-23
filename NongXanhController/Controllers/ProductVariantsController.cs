@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace NongXanhController.Controllers;
 [ApiController]
-[Route("api/product-variants")]
+[Route("api/[controller]")]
 [Authorize]
 public class ProductVariantsController : BaseApiController
 {
