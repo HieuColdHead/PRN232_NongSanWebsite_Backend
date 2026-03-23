@@ -8,7 +8,7 @@ namespace NongXanhController.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class WishlistsController : ControllerBase
+public class WishlistsController : BaseApiController
 {
     private readonly IWishlistService _wishlistService;
 
@@ -18,52 +18,68 @@ public class WishlistsController : ControllerBase
     }
 
     [HttpGet("user/{userId:guid}")]
-    public async Task<IActionResult> GetByUserId(Guid userId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<ApiResponse<PagedResult<WishlistDto>>>> GetByUserId(Guid userId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         var result = await _wishlistService.GetByUserIdAsync(userId, pageNumber, pageSize);
-        return Ok(ApiResponse<PagedResult<WishlistDto>>.Ok(result, "Wishlist retrieved successfully."));
+        return SuccessResponse(result, "Wishlist retrieved successfully.");
+    }
+
+    [HttpGet("my")]
+    public async Task<ActionResult<ApiResponse<PagedResult<WishlistDto>>>> GetMyWishlist([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null) return Unauthorized(ApiResponse<object>.Fail("User not found"));
+
+        var result = await _wishlistService.GetByUserIdAsync(userId.Value, pageNumber, pageSize);
+        return SuccessResponse(result, "Wishlist retrieved successfully.");
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddToWishlist([FromBody] CreateWishlistRequest request)
+    public async Task<ActionResult<ApiResponse<WishlistDto>>> AddToWishlist([FromBody] CreateWishlistRequest request)
     {
+        var userId = GetCurrentUserId();
+        if (userId == null) return Unauthorized(ApiResponse<object>.Fail("User not found"));
+
         if (!ModelState.IsValid)
-            return BadRequest(ApiResponse<object>.Fail("Invalid data."));
+            return ErrorResponse<WishlistDto>("Invalid data.");
 
         try
         {
-            var result = await _wishlistService.AddAsync(request);
-            return Ok(ApiResponse<WishlistDto>.Ok(result, "Product added to wishlist successfully."));
+            var result = await _wishlistService.AddAsync(userId.Value, request);
+            return SuccessResponse(result, "Product added to wishlist successfully.");
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
+            return ErrorResponse<WishlistDto>(ex.Message, statusCode: 404);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            return ErrorResponse<WishlistDto>(ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ApiResponse<object>.Fail($"Internal server error: {ex.Message}"));
+            return ErrorResponse<WishlistDto>($"Internal server error: {ex.Message}", statusCode: 500);
         }
     }
 
-    [HttpDelete("{userId:guid}/{productId:guid}")]
-    public async Task<IActionResult> RemoveFromWishlist(Guid userId, Guid productId)
+    [HttpDelete("{productId:guid}")]
+    public async Task<ActionResult<ApiResponse<object>>> RemoveFromWishlist(Guid productId)
     {
+        var userId = GetCurrentUserId();
+        if (userId == null) return Unauthorized(ApiResponse<object>.Fail("User not found"));
+
         try
         {
-            await _wishlistService.RemoveAsync(userId, productId);
-            return Ok(ApiResponse<object>.Ok(null!, "Product removed from wishlist successfully."));
+            await _wishlistService.RemoveAsync(userId.Value, productId);
+            return SuccessResponse("Product removed from wishlist successfully.");
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
+            return ErrorResponse<object>(ex.Message, statusCode: 404);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ApiResponse<object>.Fail($"Internal server error: {ex.Message}"));
+            return ErrorResponse<object>($"Internal server error: {ex.Message}", statusCode: 500);
         }
     }
 }

@@ -50,7 +50,7 @@ public class WishlistService : IWishlistService
         };
     }
 
-    public async Task<WishlistDto> AddAsync(CreateWishlistRequest request)
+    public async Task<WishlistDto> AddAsync(Guid userId, CreateWishlistRequest request)
     {
         var productExists = await _context.Products.AnyAsync(p => p.ProductId == request.ProductId && !p.IsDeleted);
         if (!productExists)
@@ -59,7 +59,7 @@ public class WishlistService : IWishlistService
         }
 
         var existingWishlist = await _context.Wishlists
-            .FirstOrDefaultAsync(w => w.UserId == request.UserId && w.ProductId == request.ProductId);
+            .FirstOrDefaultAsync(w => w.UserId == userId && w.ProductId == request.ProductId);
 
         if (existingWishlist != null)
         {
@@ -68,7 +68,7 @@ public class WishlistService : IWishlistService
 
         var wishlist = new Wishlist
         {
-            UserId = request.UserId,
+            UserId = userId,
             ProductId = request.ProductId,
             CreatedAt = DateTime.UtcNow
         };
