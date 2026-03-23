@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DAL.Entity;
@@ -17,6 +17,9 @@ public class ProductVariant
 
     [Column("price")]
     public decimal Price { get; set; }
+
+    [Column("discount_price")]
+    public decimal? DiscountPrice { get; set; }
 
     [Column("stock_quantity")]
     public int StockQuantity { get; set; }

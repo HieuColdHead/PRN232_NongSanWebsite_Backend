@@ -9,6 +9,8 @@ public class UpdateProductVariantRequest
 
     public decimal? Price { get; set; }
 
+    public decimal? DiscountPrice { get; set; }
+
     public int? StockQuantity { get; set; }
 
     [MaxLength(100)]

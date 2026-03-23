@@ -1,4 +1,4 @@
-﻿using BLL.DTOs;
+using BLL.DTOs;
 using BLL.Services.Interfaces;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
@@ -31,6 +31,7 @@ public class ProductVariantService : IProductVariantService
             VariantId = Guid.NewGuid(),
             VariantName = request.Name,
             Price = request.Price,
+            DiscountPrice = request.DiscountPrice,
             StockQuantity = request.StockQuantity,
             Sku = request.Sku,
             Status = request.Status,
@@ -49,6 +50,7 @@ public class ProductVariantService : IProductVariantService
 
         if (request.Name != null) variant.VariantName = request.Name;
         if (request.Price.HasValue) variant.Price = request.Price.Value;
+        if (request.DiscountPrice != null) variant.DiscountPrice = request.DiscountPrice;
         if (request.StockQuantity.HasValue) variant.StockQuantity = request.StockQuantity.Value;
         if (request.Sku != null) variant.Sku = request.Sku;
         if (request.Status != null) variant.Status = request.Status;
