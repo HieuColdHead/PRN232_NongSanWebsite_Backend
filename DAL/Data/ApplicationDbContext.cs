@@ -31,6 +31,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Shipment> Shipments { get; set; }
     public DbSet<ShipmentStatusUpdate> ShipmentStatusUpdates { get; set; }
     public DbSet<Blog> Blogs { get; set; }
+    public DbSet<Wishlist> Wishlists { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -213,6 +214,14 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasIndex(e => e.AuthorId)
                 .HasDatabaseName("IX_Blogs_AuthorId");
+        });
+
+        // ?? Wishlist ??
+        modelBuilder.Entity<Wishlist>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserId, e.ProductId })
+                .IsUnique()
+                .HasDatabaseName("IX_Wishlists_UserId_ProductId");
         });
     }
 }

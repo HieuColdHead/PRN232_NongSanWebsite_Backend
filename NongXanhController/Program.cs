@@ -59,6 +59,7 @@ namespace NongXanhController
             builder.Services.AddScoped<IShipmentService, ShipmentService>();
             builder.Services.AddScoped<IBlogService, BlogService>();
             builder.Services.AddScoped<IArticleRssService, ArticleRssService>();
+            builder.Services.AddScoped<IWishlistService, WishlistService>();
 
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IGoogleOAuthService, GoogleOAuthService>();
