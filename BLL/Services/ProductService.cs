@@ -99,23 +99,6 @@ namespace BLL.Services
                 }
             }
 
-            if (request.Variants != null)
-            {
-                foreach (var variant in request.Variants)
-                {
-                    product.ProductVariants.Add(new ProductVariant
-                    {
-                        VariantId = Guid.NewGuid(),
-                        VariantName = variant.VariantName,
-                        Price = variant.Price,
-                        DiscountPrice = variant.DiscountPrice,
-                        StockQuantity = variant.StockQuantity,
-                        Sku = variant.Sku,
-                        Status = variant.Status,
-                        ProductId = product.ProductId
-                    });
-                }
-            }
 
             await _repository.AddAsync(product);
             await _repository.SaveChangesAsync();
@@ -156,22 +139,6 @@ namespace BLL.Services
                 await _productImageRepository.AddRangeAsync(newImages);
             }
 
-            if (request.Variants != null)
-            {
-                await _productVariantRepository.DeleteRangeAsync(product.ProductVariants.ToList());
-                var newVariants = request.Variants.Select(v => new ProductVariant
-                {
-                    VariantId = Guid.NewGuid(),
-                    VariantName = v.VariantName,
-                    Price = v.Price,
-                    DiscountPrice = v.DiscountPrice,
-                    StockQuantity = v.StockQuantity,
-                    Sku = v.Sku,
-                    Status = v.Status,
-                    ProductId = product.ProductId
-                }).ToList();
-                await _productVariantRepository.AddRangeAsync(newVariants);
-            }
 
             // Only call SaveChanges once after all operations
             await _repository.SaveChangesAsync();

@@ -29,6 +29,4 @@ public class UpdateProductRequest
     public Guid? ProviderId { get; set; }
 
     public ICollection<ProductImageRequestDto>? Images { get; set; }
-
-    public ICollection<ProductVariantRequestDto>? Variants { get; set; }
 }
