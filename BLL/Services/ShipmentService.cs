@@ -104,7 +104,7 @@ public class ShipmentService : IShipmentService
             return MapToDto(shipment);
         }
 
-        var ghnRequest = BuildCreateOrderRequest(order, payment);
+        var ghnRequest = await BuildCreateOrderRequestAsync(order, payment, cancellationToken);
 
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
@@ -428,7 +428,10 @@ public class ShipmentService : IShipmentService
             .FirstOrDefaultAsync(s => s.OrderId == order.OrderId && !s.IsDeleted, cancellationToken);
     }
 
-    private GhnCreateOrderRequest BuildCreateOrderRequest(Order order, Payment payment)
+    private async Task<GhnCreateOrderRequest> BuildCreateOrderRequestAsync(
+        Order order,
+        Payment payment,
+        CancellationToken cancellationToken)
     {
         var shippingAddress = SanitizeShippingAddress(order.ShippingAddress, order.RecipientName, order.RecipientPhone);
         if (string.IsNullOrWhiteSpace(shippingAddress))
@@ -436,8 +439,8 @@ public class ShipmentService : IShipmentService
             throw new InvalidOperationException("Order is missing shipping address.");
         }
 
-        if (!int.TryParse(order.DistrictCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out var districtId)
-            || districtId <= 0)
+        var districtId = await ResolveOrderDistrictIdAsync(order, cancellationToken);
+        if (districtId <= 0)
         {
             throw new InvalidOperationException("Order district code is missing or invalid for GHN.");
         }
@@ -487,6 +490,31 @@ public class ShipmentService : IShipmentService
                 Weight = defaultItemWeight
             }).ToList()
         };
+    }
+
+    private async Task<int> ResolveOrderDistrictIdAsync(Order order, CancellationToken cancellationToken)
+    {
+        if (int.TryParse(order.DistrictCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedDistrictId)
+            && parsedDistrictId > 0)
+        {
+            return parsedDistrictId;
+        }
+
+        if (string.IsNullOrWhiteSpace(order.WardCode))
+        {
+            throw new InvalidOperationException("Order ward code is required to resolve district for GHN.");
+        }
+
+        if (!order.ProvinceId.HasValue || order.ProvinceId.Value <= 0)
+        {
+            throw new InvalidOperationException("Order provinceId is required to resolve district for GHN.");
+        }
+
+        var resolvedDistrictId = await _ghnService.ResolveDistrictIdByWardAsync(
+            order.WardCode,
+            order.ProvinceId,
+            cancellationToken);
+        return resolvedDistrictId;
     }
 
     private static string BuildItemName(OrderDetail detail)

@@ -88,6 +88,115 @@ public class OrdersController : BaseApiController
         return SuccessResponse(shipment);
     }
 
+    [HttpPost("{id}/confirm")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> ConfirmOrder(Guid id)
+    {
+        if (!IsAdminOrStaff())
+        {
+            return ErrorResponse<OrderDto>("Forbidden", statusCode: 403);
+        }
+
+        try
+        {
+            var order = await _service.ConfirmOrderAsync(id);
+            return SuccessResponse(order, "Order confirmed successfully");
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return ErrorResponse<OrderDto>(ex.Message, statusCode: 404);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<OrderDto>(ex.Message, statusCode: 400);
+        }
+    }
+
+    [HttpPost("{id}/cancel")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> CancelOrder(Guid id)
+    {
+        var existing = await _service.GetByIdAsync(id);
+        if (existing == null)
+        {
+            return ErrorResponse<OrderDto>("Order not found", statusCode: 404);
+        }
+
+        var userId = GetCurrentUserId();
+        if (userId is null)
+        {
+            return ErrorResponse<OrderDto>("Unauthorized", statusCode: 401);
+        }
+
+        if (!IsAdminOrStaff())
+        {
+            if (existing.UserId != userId)
+            {
+                return ErrorResponse<OrderDto>("Forbidden", statusCode: 403);
+            }
+
+            if (!string.Equals(existing.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                return ErrorResponse<OrderDto>("Users can only cancel pending orders.", statusCode: 400);
+            }
+        }
+
+        try
+        {
+            var order = await _service.CancelOrderAsync(id);
+            return SuccessResponse(order, "Order cancelled successfully");
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return ErrorResponse<OrderDto>(ex.Message, statusCode: 404);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<OrderDto>(ex.Message, statusCode: 400);
+        }
+    }
+
+    [HttpPost("{id}/create-shipping")]
+    public async Task<ActionResult<ApiResponse<ShipmentDto>>> CreateShipping(Guid id)
+    {
+        if (!IsAdminOrStaff())
+        {
+            return ErrorResponse<ShipmentDto>("Forbidden", statusCode: 403);
+        }
+
+        var order = await _service.GetByIdAsync(id);
+        if (order == null)
+        {
+            return ErrorResponse<ShipmentDto>("Order not found", statusCode: 404);
+        }
+
+        if (!string.Equals(order.Status, "Confirmed", StringComparison.OrdinalIgnoreCase))
+        {
+            return ErrorResponse<ShipmentDto>("Only confirmed orders can create shipping.", statusCode: 400);
+        }
+
+        try
+        {
+            var shipment = await _shipmentService.CreateShipmentForOrderAsync(id, "ManualConfirmShipping");
+            if (shipment == null)
+            {
+                return ErrorResponse<ShipmentDto>("Cannot create shipment because payment is not completed.", statusCode: 400);
+            }
+
+            return SuccessResponse(shipment, "Shipment created successfully");
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return ErrorResponse<ShipmentDto>(ex.Message, statusCode: 404);
+        }
+        catch (ArgumentException ex)
+        {
+            return ErrorResponse<ShipmentDto>(ex.Message, statusCode: 400);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<ShipmentDto>(ex.Message, statusCode: 400);
+        }
+    }
+
     [HttpPost("{id}/shipment/sync")]
     public async Task<ActionResult<ApiResponse<ShipmentDto>>> SyncShipment(Guid id)
     {

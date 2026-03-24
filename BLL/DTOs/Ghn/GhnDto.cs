@@ -8,6 +8,7 @@ public class GhnProvinceLookupDto
     public int ProvinceId { get; set; }
     public string ProvinceName { get; set; } = string.Empty;
     public string? Code { get; set; }
+    public string? GhnCode { get; set; }
 }
 
 public class GhnDistrictLookupDto
@@ -21,7 +22,6 @@ public class GhnDistrictLookupDto
 public class GhnWardLookupDto
 {
     public string WardCode { get; set; } = string.Empty;
-    public int DistrictId { get; set; }
     public string WardName { get; set; } = string.Empty;
 }
 
@@ -100,30 +100,6 @@ public class GhnShippingOrderDetailResponse
 
     [JsonPropertyName("updated_date")]
     public DateTime? UpdatedDate { get; set; }
-}
-
-/// <summary>Province from GHN master-data for address picker.</summary>
-public class GhnProvinceDto
-{
-    public int ProvinceID { get; set; }
-    public string ProvinceName { get; set; } = string.Empty;
-}
-
-/// <summary>District from GHN master-data for address picker.</summary>
-public class GhnDistrictDto
-{
-    public int DistrictID { get; set; }
-    public int ProvinceID { get; set; }
-    public string DistrictName { get; set; } = string.Empty;
-}
-
-/// <summary>Ward from GHN master-data for address picker.</summary>
-public class GhnWardDto
-{
-    [JsonConverter(typeof(WardCodeConverter))]
-    public string WardCode { get; set; } = string.Empty;
-    public int DistrictID { get; set; }
-    public string WardName { get; set; } = string.Empty;
 }
 
 public class GhnWebhookRequest

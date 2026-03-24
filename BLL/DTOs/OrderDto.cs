@@ -11,13 +11,13 @@ public class OrderDto
     public decimal FinalAmount { get; set; }
     public string? ShippingAddress { get; set; }
     public string? Status { get; set; }
+    public string? PaymentMethod { get; set; }
     public string? VnPayStatus { get; set; }
     public string? DeliveryStatus { get; set; }
     public string? RecipientName { get; set; }
     public string? RecipientPhone { get; set; }
     public string? ProvinceCode { get; set; }
     public int? ProvinceId { get; set; }
-    public string? DistrictCode { get; set; }
     public string? WardCode { get; set; }
     public Guid UserId { get; set; }
     public string? CustomerDisplayName { get; set; }
@@ -40,7 +40,6 @@ public class CheckoutPreviewRequest
 {
     public List<Guid> CartItemIds { get; set; } = new();
     public int? ProvinceId { get; set; }
-    public int? ToDistrictId { get; set; }
     public string? ToWardCode { get; set; }
     public decimal InsuranceValue { get; set; }
     public string? VoucherCode { get; set; }
@@ -56,7 +55,6 @@ public class CheckoutOrderRequest
     public string? RecipientPhone { get; set; }
     public string? ProvinceCode { get; set; }
     public int? ProvinceId { get; set; }
-    public int? ToDistrictId { get; set; }
     public string? ToWardCode { get; set; }
     public decimal InsuranceValue { get; set; }
     public string? VoucherCode { get; set; }

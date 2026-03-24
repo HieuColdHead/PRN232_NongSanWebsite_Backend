@@ -40,7 +40,12 @@ public class OrderService : IOrderService
 
     public async Task<PagedResult<OrderDto>> GetPagedAsync(int pageNumber, int pageSize)
     {
-        var (items, totalCount) = await _orderRepository.GetPagedAsync(pageNumber, pageSize);
+        var all = await _orderRepository.GetAllAsync();
+        var totalCount = all.Count();
+        var items = all
+            .OrderByDescending(o => o.OrderDate)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize);
 
         var dtos = new List<OrderDto>();
         foreach (var order in items)
@@ -85,6 +90,53 @@ public class OrderService : IOrderService
     {
         var order = await _orderRepository.GetByIdAsync(id);
         if (order == null) return null;
+        return await MapToDto(order);
+    }
+
+    public async Task<OrderDto> ConfirmOrderAsync(Guid id)
+    {
+        var order = await _orderRepository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Order {id} not found.");
+
+        if (!string.Equals(order.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Only pending orders can be confirmed.");
+        }
+
+        order.Status = "Confirmed";
+
+        await _orderRepository.UpdateAsync(order);
+        await _orderRepository.SaveChangesAsync();
+
+        return await MapToDto(order);
+    }
+
+    public async Task<OrderDto> CancelOrderAsync(Guid id)
+    {
+        var order = await _orderRepository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Order {id} not found.");
+
+        var isPending = string.Equals(order.Status, "Pending", StringComparison.OrdinalIgnoreCase);
+        var isConfirmed = string.Equals(order.Status, "Confirmed", StringComparison.OrdinalIgnoreCase);
+        if (!isPending && !isConfirmed)
+        {
+            throw new InvalidOperationException("Only pending or confirmed orders can be cancelled.");
+        }
+
+        var hasShipment = await _context.Shipments
+            .AsNoTracking()
+            .AnyAsync(s => s.OrderId == id && !s.IsDeleted);
+        if (hasShipment)
+        {
+            throw new InvalidOperationException("Cannot cancel order because shipment has already been created.");
+        }
+
+        order.Status = "Cancelled";
+        order.DeliveryStatus = "Cancelled";
+
+        await _orderRepository.UpdateAsync(order);
+        await _orderRepository.SaveChangesAsync();
+
         return await MapToDto(order);
     }
 
@@ -150,7 +202,6 @@ public class OrderService : IOrderService
             forUpdate: false);
 
         var destinationDistrictId = await ResolveDestinationDistrictIdAsync(
-            request.ToDistrictId,
             request.ToWardCode!,
             request.ProvinceId);
 
@@ -225,7 +276,6 @@ public class OrderService : IOrderService
             }
 
             var destinationDistrictId = await ResolveDestinationDistrictIdAsync(
-                request.ToDistrictId,
                 request.ToWardCode!,
                 request.ProvinceId);
 
@@ -248,7 +298,6 @@ public class OrderService : IOrderService
                 RecipientPhone = request.RecipientPhone?.Trim(),
                 ProvinceCode = request.ProvinceCode?.Trim(),
                 ProvinceId = request.ProvinceId,
-                DistrictCode = destinationDistrictId.ToString(CultureInfo.InvariantCulture),
                 WardCode = request.ToWardCode?.Trim(),
                 DeliveryStatus = "PendingShipment",
                 Status = "Pending",
@@ -447,11 +496,13 @@ public class OrderService : IOrderService
         }
     }
 
-    private async Task<int> ResolveDestinationDistrictIdAsync(int? toDistrictId, string toWardCode, int? provinceId)
+    private async Task<int> ResolveDestinationDistrictIdAsync(string toWardCode, int? provinceId)
     {
-        if (toDistrictId.HasValue && toDistrictId.Value > 0)
+        if (!provinceId.HasValue || provinceId.Value <= 0)
         {
-            return toDistrictId.Value;
+            throw new ArgumentException(
+                "provinceId is required.",
+                nameof(provinceId));
         }
 
         if (!_ghnService.IsConfigured())
@@ -460,7 +511,16 @@ public class OrderService : IOrderService
                 "GHN is not configured. Please configure Ghn section in appsettings before checkout.");
         }
 
-        return await _ghnService.ResolveDistrictIdByWardAsync(toWardCode.Trim(), provinceId);
+        try
+        {
+            return await _ghnService.ResolveDistrictIdByWardAsync(toWardCode.Trim(), provinceId);
+        }
+        catch (InvalidOperationException)
+        {
+            throw new ArgumentException(
+                "Invalid wardCode for the selected province. Please reload wards and choose again.",
+                nameof(toWardCode));
+        }
     }
 
     private async Task<decimal> ResolveShippingFeeAsync(
@@ -692,6 +752,10 @@ public class OrderService : IOrderService
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.OrderId == order.OrderId && !s.IsDeleted);
 
+        var payment = await _context.Payments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.OrderId == order.OrderId && !p.IsDeleted);
+
         var sanitizedShippingAddress = SanitizeShippingAddress(order.ShippingAddress, order.RecipientName, order.RecipientPhone);
 
         return new OrderDto
@@ -705,13 +769,13 @@ public class OrderService : IOrderService
             FinalAmount = order.FinalAmount,
             ShippingAddress = sanitizedShippingAddress,
             Status = order.Status,
+            PaymentMethod = payment?.PaymentMethod,
             VnPayStatus = order.VnPayStatus,
             DeliveryStatus = order.DeliveryStatus,
             RecipientName = order.RecipientName,
             RecipientPhone = order.RecipientPhone,
             ProvinceCode = order.ProvinceCode,
             ProvinceId = order.ProvinceId,
-            DistrictCode = order.DistrictCode,
             WardCode = order.WardCode,
             UserId = order.UserId,
             CustomerDisplayName = customer?.DisplayName,
