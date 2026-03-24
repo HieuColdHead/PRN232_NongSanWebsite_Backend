@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DAL.Entity;
@@ -37,6 +37,10 @@ public class Provider
     [Column("status")]
     [MaxLength(50)]
     public string? Status { get; set; }
+
+    [Column("image_url")]
+    [MaxLength(500)]
+    public string? ImageUrl { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

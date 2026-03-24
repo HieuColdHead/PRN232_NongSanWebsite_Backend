@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace BLL.DTOs;
 
@@ -24,4 +24,7 @@ public class CreateProviderRequest
 
     [MaxLength(50)]
     public string? Status { get; set; }
+
+    [MaxLength(500)]
+    public string? ImageUrl { get; set; }
 }

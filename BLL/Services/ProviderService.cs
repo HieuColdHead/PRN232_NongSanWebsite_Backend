@@ -1,4 +1,4 @@
-﻿using BLL.DTOs;
+using BLL.DTOs;
 using BLL.Services.Interfaces;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
@@ -35,7 +35,8 @@ public class ProviderService : IProviderService
             Phone = request.Phone,
             Email = request.Email,
             RatingAverage = request.RatingAverage,
-            Status = request.Status
+            Status = request.Status,
+            ImageUrl = request.ImageUrl
         };
 
         await _repository.AddAsync(provider);
@@ -55,6 +56,7 @@ public class ProviderService : IProviderService
         if (request.Email != null) provider.Email = request.Email;
         if (request.RatingAverage.HasValue) provider.RatingAverage = request.RatingAverage;
         if (request.Status != null) provider.Status = request.Status;
+        if (request.ImageUrl != null) provider.ImageUrl = request.ImageUrl;
 
         await _repository.UpdateAsync(provider);
         await _repository.SaveChangesAsync();

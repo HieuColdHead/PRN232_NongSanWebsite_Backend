@@ -23,4 +23,7 @@ public class UpdateProviderRequest
 
     [MaxLength(50)]
     public string? Status { get; set; }
+
+    [MaxLength(500)]
+    public string? ImageUrl { get; set; }
 }
