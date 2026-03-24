@@ -334,24 +334,11 @@ public class OrderService : IOrderService
             throw;
         }
 
-        ShipmentDto? shipment = null;
-        if (normalizedPaymentMethod.Equals("COD", StringComparison.OrdinalIgnoreCase))
-        {
-            try
-            {
-                shipment = await _shipmentService.CreateShipmentForOrderAsync(order.OrderId, "CheckoutCOD");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to create COD shipment for OrderId {OrderId}", order.OrderId);
-            }
-        }
-
         return new CheckoutOrderResultDto
         {
             Order = await MapToDto(order),
             Payment = payment,
-            Shipment = shipment
+            Shipment = null
         };
     }
 

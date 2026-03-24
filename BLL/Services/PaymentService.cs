@@ -18,7 +18,6 @@ public class PaymentService : IPaymentService
     private readonly IGenericRepository<Payment> _repository;
     private readonly ApplicationDbContext _context;
     private readonly IEmailSender _emailSender;
-    private readonly IShipmentService _shipmentService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PaymentService> _logger;
 
@@ -26,14 +25,12 @@ public class PaymentService : IPaymentService
         IGenericRepository<Payment> repository,
         ApplicationDbContext context,
         IEmailSender emailSender,
-        IShipmentService shipmentService,
         IConfiguration configuration,
         ILogger<PaymentService> logger)
     {
         _repository = repository;
         _context = context;
         _emailSender = emailSender;
-        _shipmentService = shipmentService;
         _configuration = configuration;
         _logger = logger;
     }
@@ -116,14 +113,21 @@ public class PaymentService : IPaymentService
         }
         else
         {
-            if (!string.Equals(payment.PaymentMethod, "VNPay", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException("The order payment method is not VNPay.");
-            }
-
             if (string.Equals(payment.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("This order has already been paid.");
+            }
+
+            if (!string.Equals(payment.PaymentMethod, "VNPay", StringComparison.OrdinalIgnoreCase))
+            {
+                // Support FE flows that create payment first, then user switches to VNPay before paying.
+                payment.PaymentMethod = "VNPay";
+                payment.PaymentStatus = "Pending";
+                payment.CodAmount = 0;
+                payment.PaidAt = null;
+
+                order.VnPayStatus = "Pending";
+                await _context.SaveChangesAsync();
             }
         }
 
@@ -271,14 +275,9 @@ public class PaymentService : IPaymentService
                 if (existingOrder != null)
                 {
                     existingOrder.VnPayStatus = "Paid";
-                    if (string.Equals(existingOrder.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-                    {
-                        existingOrder.Status = "Confirmed";
-                    }
                 }
 
                 await _context.SaveChangesAsync();
-                await TryCreateShipmentForPaidVnPayOrderAsync(existingOrderId.Value);
             }
 
             return result;
@@ -302,10 +301,6 @@ public class PaymentService : IPaymentService
             if (order != null)
             {
                 order.VnPayStatus = paymentSuccess ? "Paid" : "Failed";
-                if (paymentSuccess && string.Equals(order.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-                {
-                    order.Status = "Confirmed";
-                }
             }
 
             result.PaymentId = payment.PaymentId;
@@ -316,7 +311,6 @@ public class PaymentService : IPaymentService
 
         if (paymentSuccess && result.OrderId.HasValue)
         {
-            await TryCreateShipmentForPaidVnPayOrderAsync(result.OrderId.Value);
             await TrySendOrderConfirmationEmailAsync(result.OrderId.Value, "VNPay");
         }
 
@@ -335,21 +329,6 @@ public class PaymentService : IPaymentService
             CodAmount = payment.CodAmount,
             OrderId = payment.OrderId
         };
-    }
-
-    private async Task TryCreateShipmentForPaidVnPayOrderAsync(Guid orderId)
-    {
-        try
-        {
-            await _shipmentService.CreateShipmentForOrderAsync(orderId, "VNPayCallbackPaid");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "Failed to create shipment after VNPay payment success for OrderId {OrderId}",
-                orderId);
-        }
     }
 
     private async Task TrySendOrderConfirmationEmailAsync(Guid orderId, string paymentMethod)

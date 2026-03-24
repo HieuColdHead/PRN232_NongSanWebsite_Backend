@@ -133,10 +133,6 @@ public class ShipmentService : IShipmentService
         shipment.UpdatedAt = DateTime.UtcNow;
 
         order.DeliveryStatus = normalizedStatus;
-        if (string.Equals(order.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-        {
-            order.Status = "Confirmed";
-        }
 
         await _context.ShipmentStatusUpdates.AddAsync(new ShipmentStatusUpdate
         {
@@ -657,12 +653,6 @@ public class ShipmentService : IShipmentService
         if (string.Equals(deliveryStatus, "Returned", StringComparison.OrdinalIgnoreCase))
         {
             order.Status = "Returned";
-            return;
-        }
-
-        if (string.Equals(deliveryStatus, "ShipmentCreated", StringComparison.OrdinalIgnoreCase))
-        {
-            order.Status = "Confirmed";
             return;
         }
 
