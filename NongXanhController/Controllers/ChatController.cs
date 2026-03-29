@@ -6,14 +6,14 @@ using System.Security.Claims;
 
 namespace NongXanhController.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/support-chat")]
 [ApiController]
 [Authorize]
-public class ChatController : ControllerBase
+public class SupportChatController : ControllerBase
 {
     private readonly IChatService _chatService;
 
-    public ChatController(IChatService chatService)
+    public SupportChatController(IChatService chatService)
     {
         _chatService = chatService;
     }
