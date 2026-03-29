@@ -4,8 +4,8 @@ namespace BLL.Services.Interfaces;
 
 public interface IChatService
 {
-    Task<(bool ApiKeyConfigured, string Provider, string BaseUrl, string ModelId, string? TestError)> GetDiagnosticAsync(
-        CancellationToken cancellationToken = default);
-
-    Task<ChatResponseDto> SendChatAsync(ChatRequestDto request, CancellationToken cancellationToken = default);
+    Task<ChatMessageDto> SendMessageAsync(Guid senderId, SendMessageRequest request);
+    Task<IEnumerable<ChatMessageDto>> GetChatHistoryAsync(Guid userId1, Guid userId2);
+    Task<IEnumerable<RecentChatDto>> GetRecentChatsForAdminAsync();
+    Task MarkAsReadAsync(Guid userId, Guid senderId);
 }

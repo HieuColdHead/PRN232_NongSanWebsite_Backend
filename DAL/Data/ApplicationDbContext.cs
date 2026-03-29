@@ -32,6 +32,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ShipmentStatusUpdate> ShipmentStatusUpdates { get; set; }
     public DbSet<Blog> Blogs { get; set; }
     public DbSet<Wishlist> Wishlists { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -222,6 +223,26 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.ProductId })
                 .IsUnique()
                 .HasDatabaseName("IX_Wishlists_UserId_ProductId");
+        });
+
+        // ?? ChatMessage ??
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasOne(e => e.Sender)
+                .WithMany()
+                .HasForeignKey(e => e.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Receiver)
+                .WithMany()
+                .HasForeignKey(e => e.ReceiverId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.SenderId)
+                .HasDatabaseName("IX_ChatMessages_SenderId");
+
+            entity.HasIndex(e => e.ReceiverId)
+                .HasDatabaseName("IX_ChatMessages_ReceiverId");
         });
     }
 }

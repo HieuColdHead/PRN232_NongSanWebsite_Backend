@@ -2,29 +2,26 @@ namespace BLL.DTOs;
 
 public class ChatMessageDto
 {
-    public string Role { get; set; } = "user";
-    public string Content { get; set; } = string.Empty;
+    public Guid Id { get; set; }
+    public Guid SenderId { get; set; }
+    public string? SenderDisplayName { get; set; }
+    public Guid? ReceiverId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public DateTime SentAt { get; set; }
+    public bool IsRead { get; set; }
 }
 
-public class ChatRequestDto
+public class SendMessageRequest
 {
-    public string? Message { get; set; }
-    public List<ChatMessageDto>? Messages { get; set; }
-    public string? SystemPrompt { get; set; }
-    public string? Model { get; set; }
-    public double? Temperature { get; set; }
-    public int? MaxTokens { get; set; }
+    public Guid? ReceiverId { get; set; } // Null if sending to Admin as a Customer
+    public string Message { get; set; } = string.Empty;
 }
 
-public class ChatUsageDto
+public class RecentChatDto
 {
-    public int PromptTokens { get; set; }
-    public int CompletionTokens { get; set; }
-    public int TotalTokens { get; set; }
-}
-
-public class ChatResponseDto
-{
-    public string Content { get; set; } = string.Empty;
-    public ChatUsageDto? Usage { get; set; }
+    public Guid UserId { get; set; }
+    public string? DisplayName { get; set; }
+    public string? LastMessage { get; set; }
+    public DateTime LastMessageTime { get; set; }
+    public int UnreadCount { get; set; }
 }

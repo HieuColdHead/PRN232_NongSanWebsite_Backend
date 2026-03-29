@@ -2,71 +2,62 @@ using BLL.DTOs;
 using BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace NongXanhController.Controllers;
 
+[Route("api/[controller]")]
 [ApiController]
-[Route("api/chat")]
-[Produces("application/json")]
-public class ChatController : BaseApiController
+[Authorize]
+public class ChatController : ControllerBase
 {
     private readonly IChatService _chatService;
-    private readonly ILogger<ChatController> _logger;
 
-    public ChatController(IChatService chatService, ILogger<ChatController> logger)
+    public ChatController(IChatService chatService)
     {
         _chatService = chatService;
-        _logger = logger;
     }
 
-    [HttpGet("diagnostic")]
-    [AllowAnonymous]
-    public async Task<IActionResult> Diagnostic(CancellationToken cancellationToken = default)
+    [HttpPost("send")]
+    public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
     {
-        var (apiKeyConfigured, provider, baseUrl, modelId, testError) = await _chatService.GetDiagnosticAsync(cancellationToken);
-        return Ok(new
-        {
-            apiKeyConfigured,
-            provider,
-            baseUrl,
-            modelId,
-            status = testError == null ? "OK" : "Error",
-            error = testError,
-            timestamp = DateTime.UtcNow
-        });
+        var userId = GetUserId();
+        var result = await _chatService.SendMessageAsync(userId, request);
+        return Ok(result);
     }
 
-    [HttpPost]
-    [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<ChatResponseDto>>> SendMessage([FromBody] ChatRequestDto request, CancellationToken cancellationToken = default)
+    [HttpGet("history/{otherUserId}")]
+    public async Task<IActionResult> GetHistory(Guid otherUserId)
     {
-        try
+        var userId = GetUserId();
+        var history = await _chatService.GetChatHistoryAsync(userId, otherUserId);
+        return Ok(history);
+    }
+
+    [HttpGet("admin/recent")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> GetRecentChats()
+    {
+        var recent = await _chatService.GetRecentChatsForAdminAsync();
+        return Ok(recent);
+    }
+
+    [HttpPost("mark-read/{senderId}")]
+    public async Task<IActionResult> MarkRead(Guid senderId)
+    {
+        var userId = GetUserId();
+        await _chatService.MarkAsReadAsync(userId, senderId);
+        return NoContent();
+    }
+
+    private Guid GetUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
         {
-            var response = await _chatService.SendChatAsync(request, cancellationToken);
-            return SuccessResponse(response, "AI response generated");
+            userIdClaim = User.FindFirst("sub");
         }
-        catch (ArgumentException ex)
-        {
-            return ErrorResponse<ChatResponseDto>(ex.Message, statusCode: 400);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogError(ex, "Chat service is not configured");
-            return ErrorResponse<ChatResponseDto>("AI chưa được cấu hình", statusCode: 503);
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "Upstream LLM request failed");
-            return ErrorResponse<ChatResponseDto>("Không thể kết nối dịch vụ AI", new List<string> { ex.Message }, 502);
-        }
-        catch (TaskCanceledException)
-        {
-            return ErrorResponse<ChatResponseDto>("Yêu cầu quá thời gian", statusCode: 504);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled chat error");
-            return ErrorResponse<ChatResponseDto>("Lỗi nội bộ hệ thống", statusCode: 500);
-        }
+        
+        return userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var guid) ? guid : Guid.Empty;
     }
 }

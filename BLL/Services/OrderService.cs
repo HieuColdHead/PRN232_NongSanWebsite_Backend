@@ -7,6 +7,8 @@ using DAL.Entity;
 using DAL.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.SignalR;
+using BLL.Hubs;
 
 namespace BLL.Services;
 
@@ -18,6 +20,8 @@ public class OrderService : IOrderService
     private readonly IPaymentService _paymentService;
     private readonly IGhnService _ghnService;
     private readonly IShipmentService _shipmentService;
+    private readonly INotificationService _notificationService;
+    private readonly IHubContext<AppHub> _hubContext;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -27,6 +31,8 @@ public class OrderService : IOrderService
         IPaymentService paymentService,
         IGhnService ghnService,
         IShipmentService shipmentService,
+        INotificationService notificationService,
+        IHubContext<AppHub> hubContext,
         ILogger<OrderService> logger)
     {
         _orderRepository = orderRepository;
@@ -35,6 +41,8 @@ public class OrderService : IOrderService
         _paymentService = paymentService;
         _ghnService = ghnService;
         _shipmentService = shipmentService;
+        _notificationService = notificationService;
+        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -327,6 +335,31 @@ public class OrderService : IOrderService
             });
 
             await transaction.CommitAsync();
+
+            // Notifications
+            await _notificationService.CreateAsync(new CreateNotificationRequest
+            {
+                UserId = userId,
+                Title = "Đặt hàng thành công",
+                Content = $"Đơn hàng {order.OrderNumber} của bạn đã được tạo thành công.",
+                Type = "OrderSuccess"
+            });
+
+            // Notify Admin
+            await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", new
+            {
+                Title = "Đơn hàng mới",
+                Content = $"Có đơn hàng mới {order.OrderNumber} từ khách hàng.",
+                Type = "NewOrder",
+                OrderId = order.OrderId
+            });
+            await _hubContext.Clients.Group("Staff").SendAsync("ReceiveNotification", new
+            {
+                Title = "Đơn hàng mới",
+                Content = $"Có đơn hàng mới {order.OrderNumber} từ khách hàng.",
+                Type = "NewOrder",
+                OrderId = order.OrderId
+            });
         }
         catch
         {
@@ -352,7 +385,21 @@ public class OrderService : IOrderService
         if (request.ProvinceId.HasValue)
             order.ProvinceId = request.ProvinceId;
         if (request.Status != null)
+        {
+            var oldStatus = order.Status;
             order.Status = request.Status;
+
+            if (!string.Equals(oldStatus, request.Status, StringComparison.OrdinalIgnoreCase))
+            {
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    UserId = order.UserId,
+                    Title = "Cập nhật trạng thái đơn hàng",
+                    Content = $"Đơn hàng {order.OrderNumber} của bạn đã chuyển sang trạng thái: {request.Status}.",
+                    Type = "OrderStatusUpdate"
+                });
+            }
+        }
         if (request.VnPayStatus != null)
             order.VnPayStatus = request.VnPayStatus;
 

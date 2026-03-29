@@ -2,16 +2,20 @@ using BLL.DTOs;
 using BLL.Services.Interfaces;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
+using Microsoft.AspNetCore.SignalR;
+using BLL.Hubs;
 
 namespace BLL.Services;
 
 public class NotificationService : INotificationService
 {
     private readonly IGenericRepository<Notification> _repository;
+    private readonly IHubContext<AppHub> _hubContext;
 
-    public NotificationService(IGenericRepository<Notification> repository)
+    public NotificationService(IGenericRepository<Notification> repository, IHubContext<AppHub> hubContext)
     {
         _repository = repository;
+        _hubContext = hubContext;
     }
 
     public async Task<PagedResult<NotificationDto>> GetByUserIdAsync(Guid userId, int pageNumber, int pageSize)
@@ -54,7 +58,16 @@ public class NotificationService : INotificationService
         await _repository.AddAsync(notification);
         await _repository.SaveChangesAsync();
 
-        return MapToDto(notification);
+        var dto = MapToDto(notification);
+
+        // Push via SignalR
+        var connectionId = AppHub.GetConnectionId(notification.UserId);
+        if (connectionId != null)
+        {
+            await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveNotification", dto);
+        }
+
+        return dto;
     }
 
     public async Task MarkAsReadAsync(Guid id)
