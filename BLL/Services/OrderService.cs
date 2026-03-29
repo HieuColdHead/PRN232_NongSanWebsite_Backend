@@ -345,20 +345,12 @@ public class OrderService : IOrderService
                 Type = "OrderSuccess"
             });
 
-            // Notify Admin
-            await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", new
+            // Notify Support (Admin & Staff) - Persistent and Real-time
+            await _notificationService.CreateForSupportAsync(new CreateNotificationRequest
             {
                 Title = "Đơn hàng mới",
                 Content = $"Có đơn hàng mới {order.OrderNumber} từ khách hàng.",
-                Type = "NewOrder",
-                OrderId = order.OrderId
-            });
-            await _hubContext.Clients.Group("Staff").SendAsync("ReceiveNotification", new
-            {
-                Title = "Đơn hàng mới",
-                Content = $"Có đơn hàng mới {order.OrderNumber} từ khách hàng.",
-                Type = "NewOrder",
-                OrderId = order.OrderId
+                Type = "NewOrder"
             });
         }
         catch
