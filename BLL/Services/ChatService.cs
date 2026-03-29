@@ -14,17 +14,20 @@ public class ChatService : IChatService
     private readonly ApplicationDbContext _context;
     private readonly IHubContext<AppHub> _hubContext;
     private readonly INotificationService _notificationService;
-    private readonly HashSet<string> _adminEmails;
+    private readonly HashSet<string> _supportEmails;
 
     public ChatService(ApplicationDbContext context, IHubContext<AppHub> hubContext, IConfiguration configuration, INotificationService notificationService)
     {
         _context = context;
         _hubContext = hubContext;
         _notificationService = notificationService;
-        _adminEmails = configuration.GetSection("AdminEmails")
-            .Get<string[]>()
-            ?.Select(e => e.Trim().ToLowerInvariant())
-            .ToHashSet() ?? new HashSet<string>();
+
+        var adminEmails = configuration.GetSection("AdminEmails").Get<string[]>() ?? Array.Empty<string>();
+        var staffEmails = configuration.GetSection("StaffEmails").Get<string[]>() ?? Array.Empty<string>();
+
+        _supportEmails = adminEmails.Concat(staffEmails)
+            .Select(e => e.Trim().ToLowerInvariant())
+            .ToHashSet();
     }
 
     public async Task<ChatMessageDto> SendMessageAsync(Guid senderId, SendMessageRequest request)
@@ -73,6 +76,14 @@ public class ChatService : IChatService
                 await _hubContext.Clients.Client(connectionId).SendAsync("ReceiveMessage", dto);
             }
 
+            // If the sender is a support staff/admin, also broadcast to support groups
+            // so other staff see the reply in real-time
+            if (_supportEmails.Contains(sender.Email?.ToLower() ?? ""))
+            {
+                await _hubContext.Clients.Group("Admin").SendAsync("ReceiveMessage", dto);
+                await _hubContext.Clients.Group("Staff").SendAsync("ReceiveMessage", dto);
+            }
+
             // Create notification for receiver
             await _notificationService.CreateAsync(new CreateNotificationRequest
             {
@@ -84,11 +95,11 @@ public class ChatService : IChatService
         }
         else
         {
-            // Broadcast to Admin group
+            // Broadcast to Support groups (Customer -> Support)
             await _hubContext.Clients.Group("Admin").SendAsync("ReceiveMessage", dto);
             await _hubContext.Clients.Group("Staff").SendAsync("ReceiveMessage", dto);
 
-            // Note: For Admin, we might not want to spam notifications table for every message, 
+            // Note: For Support, we might not want to spam notifications table for every message,
             // but the SignalR broadcast 'ReceiveMessage' will handle the UI update.
         }
 
@@ -119,11 +130,11 @@ public class ChatService : IChatService
     public async Task<IEnumerable<RecentChatDto>> GetRecentChatsForAdminAsync()
     {
         // Get all unique customers who have sent or received messages
-        // This is simplified: grouped by sender (who is not admin)
+        // This is simplified: grouped by sender (who is not a support member)
         var recentChats = await _context.ChatMessages
             .Include(m => m.Sender)
-            .Where(m => m.ReceiverId == null || _adminEmails.Contains(m.Sender!.Email!.ToLower()))
-            .GroupBy(m => m.SenderId != Guid.Empty && !_adminEmails.Contains(m.Sender!.Email!.ToLower()) ? m.SenderId : m.ReceiverId)
+            .Where(m => m.ReceiverId == null || _supportEmails.Contains(m.Sender!.Email!.ToLower()))
+            .GroupBy(m => m.SenderId != Guid.Empty && !_supportEmails.Contains(m.Sender!.Email!.ToLower()) ? m.SenderId : m.ReceiverId)
             .Select(g => new
             {
                 UserId = g.Key,
