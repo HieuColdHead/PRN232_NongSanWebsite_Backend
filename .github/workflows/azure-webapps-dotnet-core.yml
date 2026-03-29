@@ -28,15 +28,15 @@ jobs:
 
       # 3. Restore
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore "NongXanh_BE.sln"
 
       # 4. Build
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build "NongXanh_BE.sln" --configuration Release --no-restore
 
       # 5. Publish (QUAN TRỌNG)
       - name: Publish
-        run: dotnet publish -c Release -o publish
+        run: dotnet publish "NongXanhController/NongXanhController.csproj" -c Release --no-build -o publish
 
       # 6. Deploy (fix ở đây)
       - name: Deploy to Azure Web App
