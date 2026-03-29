@@ -90,9 +90,14 @@ public sealed class AiChatService : IAiChatService
               Bạn là trợ lý dinh dưỡng và mua sắm của NongXanh (chuyên rau củ, trái cây).
               QUY TẮC:
               - Luôn trả lời bằng tiếng Việt, ngắn gọn, dễ hiểu.
-              - Chỉ tư vấn dựa trên dữ liệu sản phẩm được cung cấp trong context.
+              - Ưu tiên tư vấn dựa trên dữ liệu sản phẩm/cate được cung cấp trong context; nếu context thiếu dữ liệu phù hợp thì hỏi lại 1-2 câu để làm rõ hoặc gợi ý lựa chọn phổ biến.
               - Khi có sản phẩm giảm giá, ưu tiên nêu riêng mục "Đang giảm giá".
               - Không bịa thông tin y khoa tuyệt đối, chỉ mang tính tư vấn dinh dưỡng phổ thông.
+              - Không hứa hẹn “chữa bệnh”. Dùng các cụm như: “hỗ trợ”, “có thể giúp”, “thường được biết đến”.
+              
+              PHONG CÁCH (FOMO NHẸ, KHÔNG LỐ):
+              - Khi gợi ý món/sản phẩm, kèm 1 câu lợi ích và một lời nhắc hành động nhẹ: “đang đúng mùa/đang giảm giá/hết nhanh”.
+              - Nêu lợi ích dễ hiểu: đẹp da (hỗ trợ collagen/chống oxy hoá), tiêu hoá (chất xơ), năng lượng (carb tốt), miễn dịch (vitamin C).
               
               KHI NGƯỜI DÙNG NÓI THIẾU CHẤT:
               - Thiếu vitamin C: ưu tiên cam, ổi, bưởi, chanh, ớt chuông.
@@ -101,13 +106,27 @@ public sealed class AiChatService : IAiChatService
               - Thiếu kali: ưu tiên chuối, khoai tây, cà chua.
               - Thiếu chất xơ: ưu tiên bông cải xanh, cà rốt, rau xanh, táo, lê.
               
+              GIẢI THÍCH NHANH (1-2 câu) KHI THIẾU CHẤT:
+              - Vitamin C: thường hỗ trợ miễn dịch và tổng hợp collagen (da).
+              - Vitamin A/beta-carotene: thường liên quan thị lực, da và niêm mạc.
+              - Sắt: liên quan tạo hồng cầu, năng lượng; nên kết hợp nguồn vitamin C để hấp thu tốt hơn.
+              - Chất xơ: hỗ trợ tiêu hoá, no lâu; tốt cho kiểm soát đường huyết.
+              
               FORMAT GỢI Ý SẢN PHẨM:
               - Mỗi dòng: - Tên sản phẩm: giá đ
               - Nếu giảm giá: - Tên sản phẩm: giá đ (giảm từ giá_gốc đ)
+              - Nếu có, kèm “| lợi ích: ...” (ngắn gọn 5-10 từ).
               """.Trim()
             : request.SystemPrompt!.Trim();
 
-        var ragContext = await BuildRagContextAsync(lastUserMessage!, cancellationToken);
+        var rag = await BuildRagContextAsync(lastUserMessage!, cancellationToken);
+        // Nếu user hỏi về 1 rau/củ cụ thể nhưng DB không có sản phẩm liên quan thì báo rõ ràng.
+        if (rag.MatchedCount == 0 && LooksLikeSpecificProduceQuestion(lastUserMessage!))
+        {
+            return new AiChatResponseDto { Content = "Không có thông tin về sản phẩm này." };
+        }
+
+        var ragContext = rag.Context;
         if (!string.IsNullOrWhiteSpace(ragContext))
             systemPrompt += "\n\n" + ragContext;
 
@@ -174,7 +193,9 @@ public sealed class AiChatService : IAiChatService
         return request.Message?.Trim();
     }
 
-    private async Task<string> BuildRagContextAsync(string userText, CancellationToken cancellationToken)
+    private sealed record RagResult(string Context, int MatchedCount);
+
+    private async Task<RagResult> BuildRagContextAsync(string userText, CancellationToken cancellationToken)
     {
         var text = userText.ToLowerInvariant();
         var sb = new StringBuilder();
@@ -243,7 +264,11 @@ public sealed class AiChatService : IAiChatService
         {
             sb.AppendLine("ĐANG GIẢM GIÁ:");
             foreach (var p in discounted)
-                sb.AppendLine($"- {p.ProductName}: {FormatMoney(p.DiscountPrice!.Value)} đ (giảm từ {FormatMoney(p.BasePrice)} đ)");
+            {
+                var benefit = GetBenefitsHint((p.ProductName ?? string.Empty).ToLowerInvariant());
+                var meta = BuildMeta(p);
+                sb.AppendLine($"- {p.ProductName}: {FormatMoney(p.DiscountPrice!.Value)} đ (giảm từ {FormatMoney(p.BasePrice)} đ){meta}{(benefit != null ? $" | lợi ích: {benefit}" : string.Empty)}");
+            }
             sb.AppendLine();
         }
 
@@ -255,11 +280,69 @@ public sealed class AiChatService : IAiChatService
                 var price = p.DiscountPrice.HasValue && p.DiscountPrice.Value > 0 && p.DiscountPrice.Value < p.BasePrice
                     ? $"{FormatMoney(p.DiscountPrice.Value)} đ (giảm từ {FormatMoney(p.BasePrice)} đ)"
                     : $"{FormatMoney(p.BasePrice)} đ";
-                sb.AppendLine($"- {p.ProductName}: {price}");
+                var benefit = GetBenefitsHint((p.ProductName ?? string.Empty).ToLowerInvariant());
+                var meta = BuildMeta(p);
+                sb.AppendLine($"- {p.ProductName}: {price}{meta}{(benefit != null ? $" | lợi ích: {benefit}" : string.Empty)}");
             }
         }
 
-        return sb.Length == 0 ? string.Empty : "CONTEXT (dữ liệu cửa hàng):\n" + sb.ToString().Trim();
+        var ctx = sb.Length == 0 ? string.Empty : "CONTEXT (dữ liệu cửa hàng):\n" + sb.ToString().Trim();
+        return new RagResult(ctx, matched.Count);
+    }
+
+    private static bool LooksLikeSpecificProduceQuestion(string userText)
+    {
+        var t = userText.Trim().ToLowerInvariant();
+        if (t.Length < 3) return false;
+
+        // Các mẫu hỏi về “một món cụ thể” (cà rốt có tác dụng gì, rau X là gì, ăn X có tốt không,...)
+        var questionHints = new[]
+        {
+            "có tác dụng", "tác dụng", "là gì", "có tốt", "ăn", "uống", "dùng", "có đẹp da", "bổ sung", "vitamin", "dinh dưỡng", "công dụng"
+        };
+
+        // Từ khoá liên quan nhóm rau/củ/trái; nếu thiếu hoàn toàn thì không kết luận “sản phẩm này”
+        var produceHints = new[]
+        {
+            "rau", "củ", "quả", "trái", "hoa quả", "trái cây",
+            "cà", "bí", "bầu", "mướp", "đậu", "cải", "bông", "súp lơ", "khoai", "chuối", "táo", "lê", "ổi", "cam", "bưởi", "chanh", "cà chua", "ớt"
+        };
+
+        return questionHints.Any(h => t.Contains(h)) && produceHints.Any(h => t.Contains(h));
+    }
+
+    private static string BuildMeta(ProductDto p)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(p.Origin)) parts.Add($"xuất xứ {p.Origin!.Trim()}");
+        if (!string.IsNullOrWhiteSpace(p.Unit)) parts.Add($"đơn vị {p.Unit!.Trim()}");
+        if (p.IsOrganic) parts.Add("hữu cơ");
+        if (p.Quantity > 0) parts.Add($"còn {p.Quantity}");
+        return parts.Count == 0 ? string.Empty : $" ({string.Join(", ", parts)})";
+    }
+
+    private static string? GetBenefitsHint(string name)
+    {
+        // Chỉ là gợi ý dinh dưỡng phổ thông theo tên gọi; không khẳng định y khoa.
+        if (name.Contains("ổi") || name.Contains("cam") || name.Contains("bưởi") || name.Contains("chanh"))
+            return "giàu vitamin C, hỗ trợ collagen/đẹp da";
+        if (name.Contains("cà rốt") || name.Contains("bí đỏ") || name.Contains("khoai lang"))
+            return "beta-carotene, tốt cho da & mắt";
+        if (name.Contains("rau bina") || name.Contains("cải bó xôi") || name.Contains("spinach"))
+            return "sắt + folate, hỗ trợ năng lượng";
+        if (name.Contains("bông cải") || name.Contains("súp lơ") || name.Contains("broccoli"))
+            return "chất xơ, hỗ trợ tiêu hoá & no lâu";
+        if (name.Contains("cà chua") || name.Contains("tomato"))
+            return "chống oxy hoá (lycopene), tốt cho da";
+        if (name.Contains("táo") || name.Contains("lê"))
+            return "chất xơ, hỗ trợ tiêu hoá";
+        if (name.Contains("chuối"))
+            return "kali, hỗ trợ cơ bắp & phục hồi";
+        if (name.Contains("khoai tây"))
+            return "kali + carb tốt, năng lượng ổn định";
+        if (name.Contains("ớt chuông") || name.Contains("ớt"))
+            return "vitamin C, tăng vị ngon bữa ăn";
+        return null;
     }
 
     private static IEnumerable<string> ExtractKeywords(string text)
