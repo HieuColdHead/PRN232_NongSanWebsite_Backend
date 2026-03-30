@@ -8,12 +8,15 @@ public class ChatMessageDto
     public Guid? ReceiverId { get; set; }
     public string Message { get; set; } = string.Empty;
     public DateTime SentAt { get; set; }
+
+    /// <summary>Không có cột is_read trên DB — luôn false để tương thích FE cũ.</summary>
     public bool IsRead { get; set; }
 }
 
+/// <summary>Body JSON (camelCase): receiverId?, message</summary>
 public class SendMessageRequest
 {
-    public Guid? ReceiverId { get; set; } // Null if sending to Admin as a Customer
+    public Guid? ReceiverId { get; set; }
     public string Message { get; set; } = string.Empty;
 }
 

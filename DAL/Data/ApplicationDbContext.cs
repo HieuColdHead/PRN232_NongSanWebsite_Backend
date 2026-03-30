@@ -225,9 +225,13 @@ public class ApplicationDbContext : DbContext
                 .HasDatabaseName("IX_Wishlists_UserId_ProductId");
         });
 
-        // ?? ChatMessage ??
+        // ?? ChatMessage (Supabase: message_id, sender_user_id, receiver_user_id, content, created_at, is_deleted)
         modelBuilder.Entity<ChatMessage>(entity =>
         {
+            entity.Property(e => e.Content).HasMaxLength(8000);
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
             entity.HasOne(e => e.Sender)
                 .WithMany()
                 .HasForeignKey(e => e.SenderId)

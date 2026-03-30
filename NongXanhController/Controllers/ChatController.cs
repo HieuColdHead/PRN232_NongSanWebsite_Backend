@@ -22,8 +22,23 @@ public class SupportChatController : ControllerBase
     public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
     {
         var userId = GetUserId();
-        var result = await _chatService.SendMessageAsync(userId, request);
-        return Ok(result);
+        if (userId == Guid.Empty)
+            return Unauthorized(new { message = "Không xác định được người gửi." });
+        if (request == null || string.IsNullOrWhiteSpace(request.Message))
+            return BadRequest(new { message = "Nội dung tin nhắn không được rỗng." });
+        try
+        {
+            var result = await _chatService.SendMessageAsync(userId, request);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     [HttpGet("history/{otherUserId}")]

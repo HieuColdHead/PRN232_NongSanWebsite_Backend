@@ -35,22 +35,19 @@ public class ChatService : IChatService
         var sender = await _context.Users.FindAsync(senderId) 
             ?? throw new KeyNotFoundException("Sender not found.");
 
+        var text = (request.Message ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(text))
+            throw new ArgumentException("Nội dung tin nhắn không được rỗng.");
+
         Guid? receiverId = request.ReceiverId;
-        
-        // If receiver is null, it's a customer sending to admin
-        if (receiverId == null)
-        {
-            // Find an admin to receive the message or just mark it as "to admin"
-            // For now, let's look for any admin in the DB or just save it without receiverId to signify "Support Chat"
-        }
 
         var message = new ChatMessage
         {
             SenderId = senderId,
             ReceiverId = receiverId,
-            Content = request.Message,
+            Content = text,
             Timestamp = DateTime.UtcNow,
-            IsRead = false
+            IsDeleted = false
         };
 
         _context.ChatMessages.Add(message);
@@ -64,7 +61,7 @@ public class ChatService : IChatService
             ReceiverId = message.ReceiverId,
             Message = message.Content,
             SentAt = message.Timestamp,
-            IsRead = message.IsRead
+            IsRead = false
         };
 
         // Emit via SignalR
@@ -123,7 +120,7 @@ public class ChatService : IChatService
             ReceiverId = m.ReceiverId,
             Message = m.Content,
             SentAt = m.Timestamp,
-            IsRead = m.IsRead
+            IsRead = false
         });
     }
 
@@ -143,14 +140,13 @@ public class ChatService : IChatService
             ReceiverId = m.ReceiverId,
             Message = m.Content,
             SentAt = m.Timestamp,
-            IsRead = m.IsRead
+            IsRead = false
         });
     }
 
     public async Task<IEnumerable<RecentChatDto>> GetRecentChatsForAdminAsync()
     {
-        // NOTE: The production DB/schema may not have IsRead mapped consistently.
-        // To avoid EF translation errors, materialize first then group in-memory.
+        // Bảng DB không có is_read — không track đã đọc; badge unread = 0 (hoặc sau này thêm cột / bảng phụ).
         var messages = await _context.ChatMessages
             .Include(m => m.Sender)
             .Where(m => m.ReceiverId == null || (m.Sender != null && m.Sender.Email != null && _supportEmails.Contains(m.Sender.Email.ToLower())))
@@ -168,8 +164,7 @@ public class ChatService : IChatService
             {
                 var userId = g.Key;
                 var last = g.OrderByDescending(x => x.Timestamp).FirstOrDefault();
-                var unread = g.Count(x => x.ReceiverId == null && !x.IsRead);
-                return new { UserId = userId, Last = last, Unread = unread };
+                return new { UserId = userId, Last = last, Unread = 0 };
             })
             .Where(x => x.UserId.HasValue)
             .ToList();
@@ -195,18 +190,9 @@ public class ChatService : IChatService
             .OrderByDescending(r => r.LastMessageTime);
     }
 
-    public async Task MarkAsReadAsync(Guid userId, Guid senderId)
+    public Task MarkAsReadAsync(Guid userId, Guid senderId)
     {
-        // Avoid querying on IsRead server-side to prevent translation issues on some schemas.
-        var messages = await _context.ChatMessages
-            .Where(m => m.ReceiverId == userId && m.SenderId == senderId)
-            .ToListAsync();
-
-        foreach (var m in messages)
-        {
-            m.IsRead = true;
-        }
-
-        await _context.SaveChangesAsync();
+        // Không có cột is_read trên ChatMessages — giữ API để FE không lỗi; không cập nhật DB.
+        return Task.CompletedTask;
     }
 }
