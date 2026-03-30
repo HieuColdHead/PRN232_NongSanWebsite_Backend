@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -85,11 +86,15 @@ public sealed class AiChatService : IAiChatService
         if (string.IsNullOrWhiteSpace(lastUserMessage))
             throw new ArgumentException("Message hoặc Messages không được để trống.");
 
+        if (ContainsSensitiveInUserMessages(request))
+            return new AiChatResponseDto { Content = AiChatContentModeration.StandardMessage };
+
         var systemPrompt = string.IsNullOrWhiteSpace(request.SystemPrompt)
             ? """
               Bạn là trợ lý dinh dưỡng và mua sắm của NongXanh (chuyên rau củ, trái cây).
               QUY TẮC:
               - Luôn trả lời bằng tiếng Việt, ngắn gọn, dễ hiểu.
+              - Không thảo luận nội dung 18+, thô tục, chất thải/vệ sinh không liên quan thực phẩm. Nếu gặp, từ chối lịch sự và nhắc chỉ hỗ trợ thực phẩm/rau củ.
               - Ưu tiên tư vấn dựa trên dữ liệu sản phẩm/cate được cung cấp trong context; nếu context thiếu dữ liệu phù hợp thì hỏi lại 1-2 câu để làm rõ hoặc gợi ý lựa chọn phổ biến.
               - Khi có sản phẩm giảm giá, ưu tiên nêu riêng mục "Đang giảm giá".
               - Không bịa thông tin y khoa tuyệt đối, chỉ mang tính tư vấn dinh dưỡng phổ thông.
@@ -180,6 +185,23 @@ public sealed class AiChatService : IAiChatService
         {
             return string.Empty;
         }
+    }
+
+    private static bool ContainsSensitiveInUserMessages(AiChatRequestDto request)
+    {
+        if (request.Messages is { Count: > 0 })
+        {
+            foreach (var m in request.Messages)
+            {
+                if (!string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (AiChatContentModeration.ContainsSensitiveContent(m.Content))
+                    return true;
+            }
+            return false;
+        }
+
+        return AiChatContentModeration.ContainsSensitiveContent(request.Message);
     }
 
     private static string? GetLastUserMessage(AiChatRequestDto request)
