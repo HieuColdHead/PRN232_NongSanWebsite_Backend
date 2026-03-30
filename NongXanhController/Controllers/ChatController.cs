@@ -34,6 +34,14 @@ public class SupportChatController : ControllerBase
         return Ok(history);
     }
 
+    [HttpGet("history")]
+    public async Task<IActionResult> GetMyHistory()
+    {
+        var userId = GetUserId();
+        var history = await _chatService.GetMyChatHistoryAsync(userId);
+        return Ok(history);
+    }
+
     [HttpGet("admin/recent")]
     [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetRecentChats()

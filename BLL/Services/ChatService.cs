@@ -127,45 +127,79 @@ public class ChatService : IChatService
         });
     }
 
-    public async Task<IEnumerable<RecentChatDto>> GetRecentChatsForAdminAsync()
+    public async Task<IEnumerable<ChatMessageDto>> GetMyChatHistoryAsync(Guid userId)
     {
-        // Get all unique customers who have sent or received messages
-        // This is simplified: grouped by sender (who is not a support member)
-        var recentChats = await _context.ChatMessages
+        var messages = await _context.ChatMessages
             .Include(m => m.Sender)
-            .Where(m => m.ReceiverId == null || _supportEmails.Contains(m.Sender!.Email!.ToLower()))
-            .GroupBy(m => m.SenderId != Guid.Empty && !_supportEmails.Contains(m.Sender!.Email!.ToLower()) ? m.SenderId : m.ReceiverId)
-            .Select(g => new
-            {
-                UserId = g.Key,
-                LastMessage = g.OrderByDescending(m => m.Timestamp).FirstOrDefault(),
-                UnreadCount = g.Count(m => !m.IsRead && m.ReceiverId == null)
-            })
+            .Where(m => m.SenderId == userId || m.ReceiverId == userId)
+            .OrderBy(m => m.Timestamp)
             .ToListAsync();
 
-        var results = new List<RecentChatDto>();
-        foreach (var chat in recentChats)
+        return messages.Select(m => new ChatMessageDto
         {
-            if (chat.UserId == null) continue;
-            
-            var user = await _context.Users.FindAsync(chat.UserId);
-            results.Add(new RecentChatDto
-            {
-                UserId = chat.UserId.Value,
-                DisplayName = user?.DisplayName,
-                LastMessage = chat.LastMessage?.Content,
-                LastMessageTime = chat.LastMessage?.Timestamp ?? DateTime.MinValue,
-                UnreadCount = chat.UnreadCount
-            });
-        }
+            Id = m.Id,
+            SenderId = m.SenderId,
+            SenderDisplayName = m.Sender?.DisplayName,
+            ReceiverId = m.ReceiverId,
+            Message = m.Content,
+            SentAt = m.Timestamp,
+            IsRead = m.IsRead
+        });
+    }
 
-        return results.OrderByDescending(r => r.LastMessageTime);
+    public async Task<IEnumerable<RecentChatDto>> GetRecentChatsForAdminAsync()
+    {
+        // NOTE: The production DB/schema may not have IsRead mapped consistently.
+        // To avoid EF translation errors, materialize first then group in-memory.
+        var messages = await _context.ChatMessages
+            .Include(m => m.Sender)
+            .Where(m => m.ReceiverId == null || (m.Sender != null && m.Sender.Email != null && _supportEmails.Contains(m.Sender.Email.ToLower())))
+            .OrderByDescending(m => m.Timestamp)
+            .ToListAsync();
+
+        var recentChats = messages
+            .GroupBy(m =>
+            {
+                var senderEmail = m.Sender?.Email?.Trim().ToLowerInvariant();
+                var senderIsSupport = senderEmail != null && _supportEmails.Contains(senderEmail);
+                return senderIsSupport ? m.ReceiverId : m.SenderId;
+            })
+            .Select(g =>
+            {
+                var userId = g.Key;
+                var last = g.OrderByDescending(x => x.Timestamp).FirstOrDefault();
+                var unread = g.Count(x => x.ReceiverId == null && !x.IsRead);
+                return new { UserId = userId, Last = last, Unread = unread };
+            })
+            .Where(x => x.UserId.HasValue)
+            .ToList();
+
+        var userIds = recentChats.Select(x => x.UserId!.Value).Distinct().ToList();
+        var users = await _context.Users
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u);
+
+        return recentChats
+            .Select(x =>
+            {
+                users.TryGetValue(x.UserId!.Value, out var user);
+                return new RecentChatDto
+                {
+                    UserId = x.UserId!.Value,
+                    DisplayName = user?.DisplayName,
+                    LastMessage = x.Last?.Content,
+                    LastMessageTime = x.Last?.Timestamp ?? DateTime.MinValue,
+                    UnreadCount = x.Unread
+                };
+            })
+            .OrderByDescending(r => r.LastMessageTime);
     }
 
     public async Task MarkAsReadAsync(Guid userId, Guid senderId)
     {
+        // Avoid querying on IsRead server-side to prevent translation issues on some schemas.
         var messages = await _context.ChatMessages
-            .Where(m => m.ReceiverId == userId && m.SenderId == senderId && !m.IsRead)
+            .Where(m => m.ReceiverId == userId && m.SenderId == senderId)
             .ToListAsync();
 
         foreach (var m in messages)
