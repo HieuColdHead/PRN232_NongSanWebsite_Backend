@@ -173,7 +173,6 @@ namespace BLL.Services
                 CategoryName = category?.CategoryName,
                 ProviderId = product.ProviderId,
                 ProviderName = provider?.ProviderName,
-                IsDeleted = product.IsDeleted,
                 ProductImages = product.ProductImages.Select(pi => new ProductImageDto
                 {
                     ImageId = pi.ImageId,

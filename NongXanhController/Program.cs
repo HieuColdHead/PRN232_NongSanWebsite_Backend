@@ -62,6 +62,9 @@ namespace NongXanhController
             builder.Services.AddScoped<IWishlistService, WishlistService>();
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IAiChatService, AiChatService>();
+            builder.Services.AddScoped<IMealComboService, MealComboService>();
+            builder.Services.AddScoped<IRecipeService, RecipeService>();
+            builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IGoogleOAuthService, GoogleOAuthService>();
@@ -81,6 +84,7 @@ namespace NongXanhController
 
             // Register the background service
             builder.Services.AddHostedService<RssFetchingService>();
+            builder.Services.AddHostedService<SubscriptionWorker>();
 
             builder.Services.AddCors(options =>
             {
@@ -173,19 +177,26 @@ namespace NongXanhController
 
             var app = builder.Build();
 
-            // Auto apply pending EF migrations on startup
+            // Auto apply pending EF migrations on startup (Only in Development)
+            if (app.Environment.IsDevelopment())
+            {
+                using (var scope = app.Services.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var pendingMigrations = db.Database.GetPendingMigrations().ToList();
+                    if (pendingMigrations.Any())
+                    {
+                        Console.WriteLine($"Áp dụng {pendingMigrations.Count()} migration(s)...");
+                        db.Database.Migrate();
+                        Console.WriteLine("Đã tự update migrations");
+                    }
+                }
+            }
+
+            // Seed admin account if not exists
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                var pendingMigrations = db.Database.GetPendingMigrations().ToList();
-                if (pendingMigrations.Any())
-                {
-                    Console.WriteLine($"Áp dụng {pendingMigrations.Count()}  migration(s)...");
-                    db.Database.Migrate();
-                    Console.WriteLine("Đã tự update migrations");
-                }
-
-                // Seed admin account if not exists
                 var adminEmails = app.Configuration.GetSection("AdminEmails").Get<string[]>() ?? [];
                 var staffEmails = app.Configuration.GetSection("StaffEmails").Get<string[]>() ?? ["staff@gmail.com"];
                 var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();

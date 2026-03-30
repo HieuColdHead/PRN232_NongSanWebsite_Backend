@@ -33,6 +33,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<Blog> Blogs { get; set; }
     public DbSet<Wishlist> Wishlists { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
+    public DbSet<MealCombo> MealCombos { get; set; }
+    public DbSet<MealComboItem> MealComboItems { get; set; }
+    public DbSet<Subscription> Subscriptions { get; set; }
+    public DbSet<SubscriptionItem> SubscriptionItems { get; set; }
+    public DbSet<Recipe> Recipes { get; set; }
+    public DbSet<RecipeIngredient> RecipeIngredients { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -247,6 +253,24 @@ public class ApplicationDbContext : DbContext
 
             entity.HasIndex(e => e.ReceiverId)
                 .HasDatabaseName("IX_ChatMessages_ReceiverId");
+        });
+
+        // ?? MealCombo ??
+        modelBuilder.Entity<MealCombo>(entity =>
+        {
+            entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)");
+        });
+
+        // ?? MealComboItem ??
+        modelBuilder.Entity<MealComboItem>(entity =>
+        {
+            entity.Property(e => e.Quantity).HasColumnType("decimal(18,4)");
+        });
+
+        // ?? RecipeIngredient ??
+        modelBuilder.Entity<RecipeIngredient>(entity =>
+        {
+            entity.Property(e => e.Quantity).HasColumnType("decimal(18,4)");
         });
     }
 }

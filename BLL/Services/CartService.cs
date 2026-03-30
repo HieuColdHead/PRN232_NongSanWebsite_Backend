@@ -32,47 +32,49 @@ public class CartService : ICartService
 
     public async Task<CartDto> AddItemAsync(Guid userId, AddCartItemRequest request)
     {
+        return await AddItemsAsync(userId, new[] { request });
+    }
+
+    public async Task<CartDto> AddItemsAsync(Guid userId, IEnumerable<AddCartItemRequest> requests)
+    {
         var carts = await _cartRepository.FindAsync(c => c.UserId == userId && c.Status == "Active");
         var cart = carts.FirstOrDefault();
 
         if (cart == null)
         {
-            cart = new Cart
-            {
-                UserId = userId,
-                TotalAmount = 0,
-                Status = "Active"
-            };
+            cart = new Cart { UserId = userId, TotalAmount = 0, Status = "Active" };
             await _cartRepository.AddAsync(cart);
             await _cartRepository.SaveChangesAsync();
         }
 
-        var variant = await _variantRepository.GetByIdAsync(request.VariantId);
-        var price = variant?.Price ?? 0;
-
-        // Check if item already exists in cart
-        var existingItems = await _cartItemRepository.FindAsync(
-            ci => ci.CartId == cart.CartId && ci.VariantId == request.VariantId);
-        var existingItem = existingItems.FirstOrDefault();
-
-        if (existingItem != null)
+        foreach (var request in requests)
         {
-            existingItem.Quantity += request.Quantity;
-            existingItem.PriceAtTime = price;
-            existingItem.SubTotal = price * existingItem.Quantity;
-            await _cartItemRepository.UpdateAsync(existingItem);
-        }
-        else
-        {
-            var cartItem = new CartItem
+            var variant = await _variantRepository.GetByIdAsync(request.VariantId);
+            var price = variant?.Price ?? 0;
+
+            var existingItems = await _cartItemRepository.FindAsync(
+                ci => ci.CartId == cart.CartId && ci.VariantId == request.VariantId);
+            var existingItem = existingItems.FirstOrDefault();
+
+            if (existingItem != null)
             {
-                CartId = cart.CartId,
-                VariantId = request.VariantId,
-                Quantity = request.Quantity,
-                PriceAtTime = price,
-                SubTotal = price * request.Quantity
-            };
-            await _cartItemRepository.AddAsync(cartItem);
+                existingItem.Quantity += request.Quantity;
+                existingItem.PriceAtTime = price;
+                existingItem.SubTotal = price * existingItem.Quantity;
+                await _cartItemRepository.UpdateAsync(existingItem);
+            }
+            else
+            {
+                var cartItem = new CartItem
+                {
+                    CartId = cart.CartId,
+                    VariantId = request.VariantId,
+                    Quantity = request.Quantity,
+                    PriceAtTime = price,
+                    SubTotal = price * request.Quantity
+                };
+                await _cartItemRepository.AddAsync(cartItem);
+            }
         }
 
         await RecalculateCartTotal(cart);
@@ -80,7 +82,7 @@ public class CartService : ICartService
 
         return await MapToDto(cart);
     }
-
+    
     public async Task<CartDto> UpdateItemAsync(Guid userId, UpdateCartItemRequest request)
     {
         var carts = await _cartRepository.FindAsync(c => c.UserId == userId && c.Status == "Active");
