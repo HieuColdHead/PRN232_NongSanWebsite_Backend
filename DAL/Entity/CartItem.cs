@@ -28,8 +28,14 @@ public class CartItem
     public Cart? Cart { get; set; }
 
     [Column("variant_id")]
-    public Guid VariantId { get; set; }
+    public Guid? VariantId { get; set; }
 
     [ForeignKey("VariantId")]
     public ProductVariant? ProductVariant { get; set; }
+
+    [Column("meal_combo_id")]
+    public Guid? MealComboId { get; set; }
+
+    [ForeignKey("MealComboId")]
+    public MealCombo? MealCombo { get; set; }
 }

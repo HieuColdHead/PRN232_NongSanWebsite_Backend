@@ -130,6 +130,16 @@ public class ApplicationDbContext : DbContext
         {
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.ProductVariant)
+                .WithMany()
+                .HasForeignKey(e => e.VariantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.MealCombo)
+                .WithMany()
+                .HasForeignKey(e => e.MealComboId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ?? Review ??
@@ -159,6 +169,16 @@ public class ApplicationDbContext : DbContext
         {
             entity.Property(e => e.PriceAtTime).HasColumnType("decimal(18,2)");
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.ProductVariant)
+                .WithMany()
+                .HasForeignKey(e => e.VariantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.MealCombo)
+                .WithMany()
+                .HasForeignKey(e => e.MealComboId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ?? Voucher ??

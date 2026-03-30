@@ -16,6 +16,7 @@ public class OrderService : IOrderService
 {
     private readonly IGenericRepository<Order> _orderRepository;
     private readonly IGenericRepository<ProductVariant> _variantRepository;
+    private readonly IGenericRepository<MealCombo> _mealComboRepository;
     private readonly ApplicationDbContext _context;
     private readonly IPaymentService _paymentService;
     private readonly IGhnService _ghnService;
@@ -27,6 +28,7 @@ public class OrderService : IOrderService
     public OrderService(
         IGenericRepository<Order> orderRepository,
         IGenericRepository<ProductVariant> variantRepository,
+        IGenericRepository<MealCombo> mealComboRepository,
         ApplicationDbContext context,
         IPaymentService paymentService,
         IGhnService ghnService,
@@ -37,6 +39,7 @@ public class OrderService : IOrderService
     {
         _orderRepository = orderRepository;
         _variantRepository = variantRepository;
+        _mealComboRepository = mealComboRepository;
         _context = context;
         _paymentService = paymentService;
         _ghnService = ghnService;
@@ -169,14 +172,25 @@ public class OrderService : IOrderService
 
         foreach (var item in request.OrderDetails)
         {
-            var variant = await _variantRepository.GetByIdAsync(item.VariantId);
-            var price = variant?.Price ?? 0;
+            decimal price = 0;
+            if (item.VariantId.HasValue)
+            {
+                var variant = await _variantRepository.GetByIdAsync(item.VariantId.Value);
+                price = variant?.Price ?? 0;
+            }
+            else if (item.MealComboId.HasValue)
+            {
+                var combo = await _mealComboRepository.GetByIdAsync(item.MealComboId.Value);
+                price = combo?.BasePrice ?? 0;
+            }
+
             var subTotal = price * item.Quantity;
             totalAmount += subTotal;
 
             details.Add(new OrderDetail
             {
                 VariantId = item.VariantId,
+                MealComboId = item.MealComboId,
                 Quantity = item.Quantity,
                 Price = price,
                 SubTotal = subTotal
@@ -592,6 +606,7 @@ public class OrderService : IOrderService
 
         IQueryable<CartItem> query = _context.CartItems
             .Where(ci => ci.CartId == cart.CartId && selectedIds.Contains(ci.CartItemId))
+            .Include(ci => ci.MealCombo)
             .Include(ci => ci.ProductVariant!)
                 .ThenInclude(v => v.Product);
 
@@ -628,13 +643,14 @@ public class OrderService : IOrderService
 
         foreach (var item in selectedItems)
         {
-            var unitPrice = item.ProductVariant?.Price ?? item.PriceAtTime;
+            var unitPrice = item.ProductVariant?.Price ?? item.MealCombo?.BasePrice ?? item.PriceAtTime;
             var subTotal = unitPrice * item.Quantity;
             totalAmount += subTotal;
 
             orderDetails.Add(new OrderDetail
             {
                 VariantId = item.VariantId,
+                MealComboId = item.MealComboId,
                 Quantity = item.Quantity,
                 Price = unitPrice,
                 SubTotal = subTotal
@@ -644,8 +660,9 @@ public class OrderService : IOrderService
             {
                 CartItemId = item.CartItemId,
                 VariantId = item.VariantId,
-                ProductName = item.ProductVariant?.Product?.ProductName,
-                VariantName = item.ProductVariant?.VariantName,
+                MealComboId = item.MealComboId,
+                ProductName = item.MealCombo?.Name ?? item.ProductVariant?.Product?.ProductName,
+                VariantName = item.ProductVariant?.VariantName, // This will be null for combo
                 Quantity = item.Quantity,
                 UnitPrice = unitPrice,
                 SubTotal = subTotal

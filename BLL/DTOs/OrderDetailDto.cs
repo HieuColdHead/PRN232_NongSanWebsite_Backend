@@ -7,8 +7,10 @@ public class OrderDetailDto
     public decimal Price { get; set; }
     public decimal SubTotal { get; set; }
     public Guid OrderId { get; set; }
-    public Guid VariantId { get; set; }
+    public Guid? VariantId { get; set; }
     public string? VariantName { get; set; }
+    public Guid? MealComboId { get; set; }
+    public string? MealComboName { get; set; }
 
     // Product information
     public Guid ProductId { get; set; }
@@ -20,6 +22,7 @@ public class OrderDetailDto
 
 public class CreateOrderDetailRequest
 {
-    public Guid VariantId { get; set; }
+    public Guid? VariantId { get; set; }
+    public Guid? MealComboId { get; set; }
     public int Quantity { get; set; }
 }

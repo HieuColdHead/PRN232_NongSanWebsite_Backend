@@ -10,15 +10,18 @@ public class CartService : ICartService
     private readonly IGenericRepository<Cart> _cartRepository;
     private readonly IGenericRepository<CartItem> _cartItemRepository;
     private readonly IGenericRepository<ProductVariant> _variantRepository;
+    private readonly IGenericRepository<MealCombo> _mealComboRepository;
 
     public CartService(
         IGenericRepository<Cart> cartRepository,
         IGenericRepository<CartItem> cartItemRepository,
-        IGenericRepository<ProductVariant> variantRepository)
+        IGenericRepository<ProductVariant> variantRepository,
+        IGenericRepository<MealCombo> mealComboRepository)
     {
         _cartRepository = cartRepository;
         _cartItemRepository = cartItemRepository;
         _variantRepository = variantRepository;
+        _mealComboRepository = mealComboRepository;
     }
 
     public async Task<CartDto?> GetByUserIdAsync(Guid userId)
@@ -49,11 +52,27 @@ public class CartService : ICartService
 
         foreach (var request in requests)
         {
-            var variant = await _variantRepository.GetByIdAsync(request.VariantId);
-            var price = variant?.Price ?? 0;
+            decimal price = 0;
+            if (request.VariantId.HasValue)
+            {
+                var variant = await _variantRepository.GetByIdAsync(request.VariantId.Value);
+                price = variant?.Price ?? 0;
+            }
+            else if (request.MealComboId.HasValue)
+            {
+                var combo = await _mealComboRepository.GetByIdAsync(request.MealComboId.Value);
+                price = combo?.BasePrice ?? 0;
+            }
+            else
+            {
+                continue; // Skip invalid requests
+            }
 
             var existingItems = await _cartItemRepository.FindAsync(
-                ci => ci.CartId == cart.CartId && ci.VariantId == request.VariantId);
+                ci => ci.CartId == cart.CartId && 
+                      ((request.VariantId.HasValue && ci.VariantId == request.VariantId) || 
+                       (request.MealComboId.HasValue && ci.MealComboId == request.MealComboId)));
+            
             var existingItem = existingItems.FirstOrDefault();
 
             if (existingItem != null)
@@ -69,6 +88,7 @@ public class CartService : ICartService
                 {
                     CartId = cart.CartId,
                     VariantId = request.VariantId,
+                    MealComboId = request.MealComboId,
                     Quantity = request.Quantity,
                     PriceAtTime = price,
                     SubTotal = price * request.Quantity
@@ -165,7 +185,10 @@ public class CartService : ICartService
                 SubTotal = i.SubTotal,
                 CartId = i.CartId,
                 VariantId = i.VariantId,
-                VariantName = i.ProductVariant?.VariantName
+                VariantName = i.ProductVariant?.VariantName,
+                MealComboId = i.MealComboId,
+                MealComboName = i.MealCombo?.Name,
+                ImageUrl = i.MealCombo?.ImageUrl ?? i.ProductVariant?.Product?.ProductImages?.FirstOrDefault()?.ImageUrl
             }).ToList()
         };
     }

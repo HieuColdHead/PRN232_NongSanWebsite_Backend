@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -27,6 +27,16 @@ namespace DAL.Repositories
             if (typeof(T) == typeof(DAL.Entity.Product))
             {
                 query = query.Include("ProductImages").Include("ProductVariants");
+            }
+
+            if (typeof(T) == typeof(DAL.Entity.CartItem))
+            {
+                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
+            }
+
+            if (typeof(T) == typeof(DAL.Entity.OrderDetail))
+            {
+                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
             }
 
             var all = await query.ToListAsync();
@@ -81,6 +91,15 @@ namespace DAL.Repositories
             if (typeof(T) == typeof(DAL.Entity.Product))
             {
                  query = query.Include("ProductImages").Include("ProductVariants");
+            }
+
+            if (typeof(T) == typeof(DAL.Entity.CartItem))
+            {
+                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
+            }
+            if (typeof(T) == typeof(DAL.Entity.OrderDetail))
+            {
+                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
             }
              
             if (id is Guid guidId)
@@ -173,6 +192,16 @@ namespace DAL.Repositories
             if (typeof(T) == typeof(DAL.Entity.Product))
             {
                 query = query.Include("ProductImages").Include("ProductVariants");
+            }
+
+            if (typeof(T) == typeof(DAL.Entity.CartItem))
+            {
+                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
+            }
+
+            if (typeof(T) == typeof(DAL.Entity.OrderDetail))
+            {
+                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
             }
 
             var results = await query.Where(predicate).ToListAsync();

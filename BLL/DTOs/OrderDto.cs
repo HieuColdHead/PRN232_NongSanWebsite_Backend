@@ -63,7 +63,8 @@ public class CheckoutOrderRequest
 public class CheckoutItemDto
 {
     public Guid CartItemId { get; set; }
-    public Guid VariantId { get; set; }
+    public Guid? VariantId { get; set; }
+    public Guid? MealComboId { get; set; }
     public string? ProductName { get; set; }
     public string? VariantName { get; set; }
     public int Quantity { get; set; }
