@@ -62,6 +62,7 @@ namespace NongXanhController
             builder.Services.AddScoped<IWishlistService, WishlistService>();
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IAiChatService, AiChatService>();
+            builder.Services.AddScoped<IMealComboSuggestionService, MealComboSuggestionService>();
             builder.Services.AddScoped<IMealComboService, MealComboService>();
             builder.Services.AddScoped<IRecipeService, RecipeService>();
             builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
