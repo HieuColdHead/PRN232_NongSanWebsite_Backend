@@ -44,6 +44,14 @@ public class ProductsController : BaseApiController
         return SuccessResponse(product);
     }
 
+    [HttpGet("{id}/sold-quantity")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<object>>> GetSoldQuantity(Guid id)
+    {
+        var soldQuantity = await _service.GetSoldQuantityAsync(id);
+        return SuccessResponse<object>(new { ProductId = id, SoldQuantity = soldQuantity });
+    }
+
     [HttpGet("best-sellers")]
     [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<IEnumerable<ProductBestSellerDto>>>> GetBestSellers(

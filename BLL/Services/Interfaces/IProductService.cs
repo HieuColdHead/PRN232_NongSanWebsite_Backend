@@ -9,6 +9,7 @@ public interface IProductService
     Task<PagedResult<ProductDto>> GetPagedAsync(int pageNumber, int pageSize);
     Task<ProductDto?> GetByIdAsync(Guid id);
     Task<IEnumerable<ProductBestSellerDto>> GetBestSellersAsync(int top = 10, int? lastDays = null);
+    Task<decimal> GetSoldQuantityAsync(Guid productId);
     Task<ProductDto> CreateAsync(CreateProductRequest request);
     Task UpdateAsync(Guid id, UpdateProductRequest request);
     Task DeleteAsync(Guid id);

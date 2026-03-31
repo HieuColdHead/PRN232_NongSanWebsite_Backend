@@ -184,6 +184,63 @@ namespace BLL.Services
                 .ToList();
         }
 
+        public async Task<decimal> GetSoldQuantityAsync(Guid productId)
+        {
+            if (productId == Guid.Empty)
+            {
+                return 0m;
+            }
+
+            var deliveredOrderIds = _context.Orders
+                .AsNoTracking()
+                .Where(o => !o.IsDeleted && o.Status != null && o.Status.ToLower() == "delivered")
+                .Select(o => o.OrderId);
+
+            // Variant lines -> sold by quantity
+            var soldFromVariants = await _context.Set<OrderDetail>()
+                .AsNoTracking()
+                .Where(d => deliveredOrderIds.Contains(d.OrderId) && d.VariantId.HasValue)
+                .Join(
+                    _context.Set<ProductVariant>().AsNoTracking(),
+                    d => d.VariantId!.Value,
+                    v => v.VariantId,
+                    (d, v) => new { v.ProductId, Qty = (decimal)d.Quantity })
+                .Where(x => x.ProductId == productId)
+                .SumAsync(x => (decimal?)x.Qty) ?? 0m;
+
+            // Combo lines -> expand MealComboItems for just this product
+            var soldFromCombosRaw = await _context.Set<OrderDetail>()
+                .AsNoTracking()
+                .Where(d => deliveredOrderIds.Contains(d.OrderId) && d.MealComboId.HasValue)
+                .Select(d => new { MealComboId = d.MealComboId!.Value, ComboQty = d.Quantity })
+                .ToListAsync();
+
+            decimal soldFromCombos = 0m;
+            if (soldFromCombosRaw.Count > 0)
+            {
+                var comboIds = soldFromCombosRaw.Select(x => x.MealComboId).Distinct().ToList();
+                var items = await _context.Set<MealComboItem>()
+                    .AsNoTracking()
+                    .Where(i => comboIds.Contains(i.MealComboId) && i.ProductId == productId)
+                    .Select(i => new { i.MealComboId, i.Quantity })
+                    .ToListAsync();
+
+                var qtyByComboId = items
+                    .GroupBy(x => x.MealComboId)
+                    .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+                foreach (var line in soldFromCombosRaw)
+                {
+                    if (!qtyByComboId.TryGetValue(line.MealComboId, out var itemQty)) continue;
+                    var comboQty = Math.Max(1, line.ComboQty);
+                    var add = comboQty * itemQty;
+                    if (add > 0) soldFromCombos += add;
+                }
+            }
+
+            return soldFromVariants + soldFromCombos;
+        }
+
         public async Task<ProductDto> CreateAsync(CreateProductRequest request)
         {
             var product = new Product
