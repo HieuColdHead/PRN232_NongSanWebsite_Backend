@@ -802,11 +802,16 @@ public class OrderService : IOrderService
         }
 
         // Load order details with ProductVariant -> Product -> ProductImages
+        // and MealCombo -> Items -> Product -> ProductImages (for display)
         var orderDetails = await _context.Set<OrderDetail>()
             .Where(d => d.OrderId == order.OrderId)
             .Include(d => d.ProductVariant!)
                 .ThenInclude(v => v.Product!)
                     .ThenInclude(p => p.ProductImages)
+            .Include(d => d.MealCombo!)
+                .ThenInclude(mc => mc.Items)
+                    .ThenInclude(i => i.Product!)
+                        .ThenInclude(p => p.ProductImages)
             .ToListAsync();
 
         var shipment = await _context.Shipments
@@ -867,6 +872,21 @@ public class OrderService : IOrderService
                 OrderId = d.OrderId,
                 VariantId = d.VariantId,
                 VariantName = d.ProductVariant?.VariantName,
+                MealComboId = d.MealComboId,
+                MealComboName = d.MealCombo?.Name,
+                ComboItems = d.MealComboId.HasValue
+                    ? d.MealCombo?.Items.Select(i => new MealComboOrderItemDto
+                    {
+                        ProductId = i.ProductId,
+                        ProductName = i.Product?.ProductName,
+                        Quantity = i.Quantity,
+                        Unit = i.Unit ?? i.Product?.Unit,
+                        ImageUrl = i.Product?.ProductImages
+                            ?.FirstOrDefault(img => img.IsPrimary)?.ImageUrl
+                            ?? i.Product?.ProductImages?.FirstOrDefault()?.ImageUrl,
+                        Origin = i.Product?.Origin
+                    }).ToList()
+                    : null,
                 ProductId = d.ProductVariant?.ProductId ?? Guid.Empty,
                 ProductName = d.ProductVariant?.Product?.ProductName,
                 ProductImageUrl = d.ProductVariant?.Product?.ProductImages

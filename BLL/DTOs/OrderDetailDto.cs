@@ -11,12 +11,23 @@ public class OrderDetailDto
     public string? VariantName { get; set; }
     public Guid? MealComboId { get; set; }
     public string? MealComboName { get; set; }
+    public List<MealComboOrderItemDto>? ComboItems { get; set; }
 
     // Product information
     public Guid ProductId { get; set; }
     public string? ProductName { get; set; }
     public string? ProductImageUrl { get; set; }
     public string? Unit { get; set; }
+    public string? Origin { get; set; }
+}
+
+public class MealComboOrderItemDto
+{
+    public Guid ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public decimal Quantity { get; set; }
+    public string? Unit { get; set; }
+    public string? ImageUrl { get; set; }
     public string? Origin { get; set; }
 }
 
