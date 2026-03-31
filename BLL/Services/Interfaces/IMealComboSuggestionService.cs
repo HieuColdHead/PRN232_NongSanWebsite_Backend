@@ -14,10 +14,11 @@ public sealed record MealComboSuggestionResult(
     decimal TotalPrice);
 
 public sealed record MealComboSuggestedItem(
+    Guid VariantId,
+    int Packs,
     Guid ProductId,
-    decimal Quantity,
-    string? Unit,
-    string? Group,
-    Guid? VariantId,
+    Guid? ParentCategoryId,
+    string? ParentCategoryName,
+    string? CategoryName,
     decimal UnitPrice,
     decimal LineTotal);
