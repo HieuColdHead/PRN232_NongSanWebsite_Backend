@@ -38,8 +38,23 @@ public class CartsController : BaseApiController
         var userId = GetCurrentUserId();
         if (userId is null) return ErrorResponse<CartDto>("Unauthorized", statusCode: 401);
 
-        var cart = await _service.AddItemAsync(userId.Value, request);
-        return SuccessResponse(cart, "Item added to cart");
+        try
+        {
+            var cart = await _service.AddItemAsync(userId.Value, request);
+            return SuccessResponse(cart, "Item added to cart");
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return ErrorResponse<CartDto>(ex.Message, statusCode: 404);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ErrorResponse<CartDto>(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return ErrorResponse<CartDto>($"Internal server error: {ex.Message}", statusCode: 500);
+        }
     }
 
     [HttpPut("items")]

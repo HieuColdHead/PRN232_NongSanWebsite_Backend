@@ -56,12 +56,21 @@ public class CartService : ICartService
             if (request.VariantId.HasValue)
             {
                 var variant = await _variantRepository.GetByIdAsync(request.VariantId.Value);
-                price = variant?.Price ?? 0;
+                if (variant == null)
+                    throw new KeyNotFoundException($"Variant {request.VariantId.Value} not found");
+
+                price = variant.Price;
             }
             else if (request.MealComboId.HasValue)
             {
                 var combo = await _mealComboRepository.GetByIdAsync(request.MealComboId.Value);
-                price = combo?.BasePrice ?? 0;
+                if (combo == null)
+                    throw new KeyNotFoundException($"Meal combo {request.MealComboId.Value} not found");
+
+                if (!combo.IsActive)
+                    throw new InvalidOperationException("Meal combo is not active");
+
+                price = combo.BasePrice;
             }
             else
             {
