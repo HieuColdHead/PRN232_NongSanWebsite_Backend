@@ -113,8 +113,12 @@ public class RecipeService : IRecipeService
                 // Find the primary variant or first variant via ProductService
                 var product = await _productService.GetByIdAsync(ingredient.ProductId.Value);
 
-                var variant = product?.ProductVariants.FirstOrDefault();
-                if (variant != null && variant.StockQuantity >= quantityToBuy)
+                var variant = product?.ProductVariants
+                    .Where(v => v.StockQuantity >= quantityToBuy)
+                    .OrderByDescending(v => v.StockQuantity)
+                    .FirstOrDefault();
+
+                if (variant != null)
                 {
                     itemsToAdd.Add(new AddCartItemRequest
                     {

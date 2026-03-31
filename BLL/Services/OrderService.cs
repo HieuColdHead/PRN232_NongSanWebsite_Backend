@@ -627,9 +627,27 @@ public class OrderService : IOrderService
             throw new InvalidOperationException("Selected cart items must have quantity greater than 0.");
         }
 
-        if (items.Any(i => i.ProductVariant == null || i.ProductVariant.IsDeleted))
+        var hasInvalidVariant = items.Any(i =>
+            i.VariantId.HasValue
+            && (i.ProductVariant == null || i.ProductVariant.IsDeleted));
+
+        if (hasInvalidVariant)
         {
             throw new InvalidOperationException("Some selected products are no longer available.");
+        }
+
+        var hasInvalidCombo = items.Any(i =>
+            i.MealComboId.HasValue
+            && (i.MealCombo == null || !i.MealCombo.IsActive));
+
+        if (hasInvalidCombo)
+        {
+            throw new InvalidOperationException("Some selected meal combos are no longer available.");
+        }
+
+        if (items.Any(i => !i.VariantId.HasValue && !i.MealComboId.HasValue))
+        {
+            throw new InvalidOperationException("Some selected cart items are invalid.");
         }
 
         return (cart, items);
