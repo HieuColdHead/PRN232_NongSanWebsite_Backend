@@ -7,6 +7,8 @@ public interface IRecipeService
     Task<IEnumerable<RecipeDto>> GetAllAsync();
     Task<RecipeDto?> GetByIdAsync(Guid id);
     Task<RecipeDto> CreateAsync(CreateRecipeRequest request);
+    Task UpdateAsync(Guid id, UpdateRecipeRequest request);
+    Task DeleteAsync(Guid id);
     Task<bool> AddAllIngredientsToCartAsync(Guid userId, Guid recipeId);
 }
 

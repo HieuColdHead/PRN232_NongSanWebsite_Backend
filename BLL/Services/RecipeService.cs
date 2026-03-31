@@ -60,6 +60,42 @@ public class RecipeService : IRecipeService
         return MapToDto(recipe);
     }
 
+    public async Task UpdateAsync(Guid id, UpdateRecipeRequest request)
+    {
+        var recipe = await _recipeRepository.GetByIdAsync(id);
+        if (recipe == null) throw new KeyNotFoundException($"Recipe {id} not found");
+
+        if (request.Title != null) recipe.Title = request.Title;
+        if (request.Description != null) recipe.Description = request.Description;
+        if (request.Instructions != null) recipe.Instructions = request.Instructions;
+        if (request.ImageUrl != null) recipe.ImageUrl = request.ImageUrl;
+        if (request.CookingTimeMinutes.HasValue) recipe.CookingTimeMinutes = request.CookingTimeMinutes.Value;
+        if (request.Servings.HasValue) recipe.Servings = request.Servings.Value;
+
+        // Replace-all ingredients if provided in request.
+        if (request.Ingredients != null)
+        {
+            recipe.Ingredients = request.Ingredients.Select(i => new RecipeIngredient
+            {
+                RecipeIngredientId = Guid.NewGuid(),
+                RecipeId = recipe.RecipeId,
+                ProductId = i.ProductId,
+                IngredientName = i.IngredientName,
+                Quantity = i.Quantity,
+                Unit = i.Unit
+            }).ToList();
+        }
+
+        await _recipeRepository.UpdateAsync(recipe);
+        await _recipeRepository.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        await _recipeRepository.DeleteAsync(id);
+        await _recipeRepository.SaveChangesAsync();
+    }
+
     public async Task<bool> AddAllIngredientsToCartAsync(Guid userId, Guid recipeId)
     {
         var recipe = await _recipeRepository.GetByIdAsync(recipeId);

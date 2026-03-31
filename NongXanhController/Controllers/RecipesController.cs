@@ -34,15 +34,13 @@ public class RecipesController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<ApiResponse<RecipeDto>>> Create([FromBody] CreateRecipeRequest request)
     {
-        try
+        if (!IsAdminOrStaff())
         {
-            var result = await _recipeService.CreateAsync(request);
-            return SuccessResponse(result, "Recipe created successfully");
+            return ErrorResponse<RecipeDto>("Forbidden", statusCode: 403);
         }
-        catch (Exception ex)
-        {
-            return ErrorResponse<RecipeDto>(ex.Message);
-        }
+
+        var result = await _recipeService.CreateAsync(request);
+        return SuccessResponse(result, "Recipe created successfully");
     }
 
     [Authorize]
@@ -56,5 +54,31 @@ public class RecipesController : BaseApiController
         if (!result) return ErrorResponse<bool>("Failed to add ingredients to cart");
 
         return SuccessResponse(true, "All available ingredients added to cart");
+    }
+
+    [Authorize]
+    [HttpPut("{id}")]
+    public async Task<ActionResult<ApiResponse<object>>> PutRecipe(Guid id, [FromBody] UpdateRecipeRequest request)
+    {
+        if (!IsAdminOrStaff())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
+        await _recipeService.UpdateAsync(id, request);
+        return SuccessResponse("Recipe updated successfully");
+    }
+
+    [Authorize]
+    [HttpDelete("{id}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteRecipe(Guid id)
+    {
+        if (!IsAdminOrStaff())
+        {
+            return ErrorResponse<object>("Forbidden", statusCode: 403);
+        }
+
+        await _recipeService.DeleteAsync(id);
+        return SuccessResponse("Recipe deleted successfully");
     }
 }

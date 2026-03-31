@@ -29,6 +29,11 @@ namespace DAL.Repositories
                 query = query.Include("ProductImages").Include("ProductVariants");
             }
 
+            if (typeof(T) == typeof(DAL.Entity.Recipe))
+            {
+                query = query.Include("Ingredients");
+            }
+
             if (typeof(T) == typeof(DAL.Entity.CartItem))
             {
                 query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
@@ -91,6 +96,11 @@ namespace DAL.Repositories
             if (typeof(T) == typeof(DAL.Entity.Product))
             {
                  query = query.Include("ProductImages").Include("ProductVariants");
+            }
+
+            if (typeof(T) == typeof(DAL.Entity.Recipe))
+            {
+                query = query.Include("Ingredients");
             }
 
             if (typeof(T) == typeof(DAL.Entity.CartItem))
@@ -192,6 +202,11 @@ namespace DAL.Repositories
             if (typeof(T) == typeof(DAL.Entity.Product))
             {
                 query = query.Include("ProductImages").Include("ProductVariants");
+            }
+
+            if (typeof(T) == typeof(DAL.Entity.Recipe))
+            {
+                query = query.Include("Ingredients");
             }
 
             if (typeof(T) == typeof(DAL.Entity.CartItem))
