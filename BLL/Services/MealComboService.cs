@@ -75,7 +75,9 @@ public class MealComboService : IMealComboService
         foreach (var item in mealCombo.Items)
             item.MealComboId = mealCombo.MealComboId;
 
-        mealCombo.BasePrice = await CalculateComboPriceAsync(mealCombo);
+        mealCombo.BasePrice = suggestion.TotalPrice > 0
+            ? suggestion.TotalPrice
+            : await CalculateComboPriceAsync(mealCombo);
 
         await _mealComboRepository.AddAsync(mealCombo);
         await _mealComboRepository.SaveChangesAsync();
@@ -87,7 +89,7 @@ public class MealComboService : IMealComboService
 
     private async Task<decimal> CalculateComboPriceAsync(MealCombo combo)
     {
-        // Price is estimated from products' effective unit price (prefer cheapest in-stock variant),
+        // Price is estimated from products' cheapest in-stock variant (prefer DiscountPrice),
         // multiplied by the suggested quantity.
         var allProducts = await _productRepository.GetAllAsync();
         var byId = allProducts.ToDictionary(p => p.ProductId, p => p);
@@ -97,7 +99,7 @@ public class MealComboService : IMealComboService
         {
             if (!byId.TryGetValue(item.ProductId, out var p)) continue;
 
-            var unitPrice = GetEffectiveUnitPrice(p);
+            var (_, unitPrice) = GetCheapestInStockVariant(p);
             if (unitPrice <= 0) continue;
 
             total += unitPrice * item.Quantity;
@@ -117,21 +119,32 @@ public class MealComboService : IMealComboService
         return peopleCount > 0 && days > 0 ? peopleCount * days * 50000m : 0m;
     }
 
-    private static decimal GetEffectiveUnitPrice(Product p)
+    private static (Guid? VariantId, decimal UnitPrice) GetCheapestInStockVariant(Product p)
     {
-        var inStockVariants = p.ProductVariants
+        var cheapest = p.ProductVariants
             .Where(v => !v.IsDeleted && v.StockQuantity > 0)
-            .Select(v => v.DiscountPrice.HasValue && v.DiscountPrice.Value > 0 && v.DiscountPrice.Value < v.Price ? v.DiscountPrice.Value : v.Price)
-            .Where(x => x > 0)
-            .ToList();
+            .Select(v => new
+            {
+                v.VariantId,
+                UnitPrice = v.DiscountPrice.HasValue && v.DiscountPrice.Value > 0 && v.DiscountPrice.Value < v.Price
+                    ? v.DiscountPrice.Value
+                    : v.Price
+            })
+            .Where(x => x.UnitPrice > 0)
+            .OrderBy(x => x.UnitPrice)
+            .FirstOrDefault();
 
-        if (inStockVariants.Count > 0)
-            return inStockVariants.Min();
+        if (cheapest != null)
+        {
+            return (cheapest.VariantId, cheapest.UnitPrice);
+        }
 
         if (p.DiscountPrice.HasValue && p.DiscountPrice.Value > 0 && p.DiscountPrice.Value < p.BasePrice)
-            return p.DiscountPrice.Value;
+        {
+            return (null, p.DiscountPrice.Value);
+        }
 
-        return p.BasePrice;
+        return (null, p.BasePrice);
     }
 
     private MealComboDto MapToDto(MealCombo combo)
@@ -146,13 +159,23 @@ public class MealComboService : IMealComboService
             DietType = combo.DietType,
             BasePrice = combo.BasePrice,
             ImageUrl = combo.ImageUrl,
-            Items = combo.Items.Select(i => new MealComboItemDto
+            Items = combo.Items.Select(i =>
             {
-                ProductId = i.ProductId,
-                ProductName = i.Product?.ProductName ?? "Sản phẩm",
-                Quantity = i.Quantity,
-                Unit = i.Unit,
-                Price = i.Product != null ? GetEffectiveUnitPrice(i.Product) : 0
+                var (variantId, unitPrice) = i.Product != null
+                    ? GetCheapestInStockVariant(i.Product)
+                    : (null, 0m);
+
+                return new MealComboItemDto
+                {
+                    ProductId = i.ProductId,
+                    ProductName = i.Product?.ProductName ?? "Sản phẩm",
+                    Quantity = i.Quantity,
+                    Unit = i.Unit,
+                    Price = unitPrice,
+                    VariantId = variantId,
+                    UnitPrice = unitPrice,
+                    LineTotal = Decimal.Round(unitPrice * i.Quantity, 0)
+                };
             }).ToList()
         };
     }

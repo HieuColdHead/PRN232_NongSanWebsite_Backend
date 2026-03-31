@@ -1,4 +1,4 @@
-﻿using BLL.DTOs;
+using BLL.DTOs;
 using BLL.Services.Interfaces;
 using DAL.Entity;
 using Microsoft.AspNetCore.Authorization;
@@ -42,6 +42,16 @@ public class ProductsController : BaseApiController
         }
 
         return SuccessResponse(product);
+    }
+
+    [HttpGet("best-sellers")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ProductBestSellerDto>>>> GetBestSellers(
+        [FromQuery] int top = 10,
+        [FromQuery] int? lastDays = null)
+    {
+        var result = await _service.GetBestSellersAsync(top, lastDays);
+        return SuccessResponse(result);
     }
 
     [HttpPost]

@@ -29,4 +29,7 @@ public class MealComboItemDto
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }
     public decimal Price { get; set; }
+    public Guid? VariantId { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal LineTotal { get; set; }
 }

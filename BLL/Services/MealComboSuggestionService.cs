@@ -41,6 +41,7 @@ public sealed class MealComboSuggestionService : IMealComboSuggestionService
                 p.Unit,
                 Group: ClassifyGroup(p),
                 Price: GetEffectiveUnitPrice(p),
+                CheapestVariantId: GetCheapestInStockVariantId(p),
                 InStock: p.ProductVariants.Sum(v => v.IsDeleted ? 0 : v.StockQuantity)))
             .Where(c => c.Price > 0)
             .OrderByDescending(c => c.InStock)
@@ -50,13 +51,13 @@ public sealed class MealComboSuggestionService : IMealComboSuggestionService
 
         // If no data, return empty
         if (candidates.Count == 0)
-            return new MealComboSuggestionResult(false, null, Array.Empty<MealComboSuggestedItem>());
+            return new MealComboSuggestionResult(false, null, Array.Empty<MealComboSuggestedItem>(), 0m);
 
         var apiKey = _configuration["MegaLLM:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             var heuristic = HeuristicSuggest(request, candidates);
-            return new MealComboSuggestionResult(false, null, heuristic);
+            return new MealComboSuggestionResult(false, null, heuristic, heuristic.Sum(i => i.LineTotal));
         }
 
         try
@@ -89,7 +90,7 @@ public sealed class MealComboSuggestionService : IMealComboSuggestionService
             {
                 _logger.LogWarning("MealComboSuggestionService MegaLLM failed {Status}: {Body}", (int)res.StatusCode, body);
                 var heuristic = HeuristicSuggest(request, candidates);
-                return new MealComboSuggestionResult(false, null, heuristic);
+                return new MealComboSuggestionResult(false, null, heuristic, heuristic.Sum(i => i.LineTotal));
             }
 
             var content = ExtractAssistantContent(body);
@@ -97,27 +98,27 @@ public sealed class MealComboSuggestionService : IMealComboSuggestionService
             if (!parsed || items.Count == 0)
             {
                 var heuristic = HeuristicSuggest(request, candidates);
-                return new MealComboSuggestionResult(true, content, heuristic);
+                return new MealComboSuggestionResult(true, content, heuristic, heuristic.Sum(i => i.LineTotal));
             }
 
             var validated = ValidateAndFix(items, candidates, request);
             if (validated.Count == 0)
             {
                 var heuristic = HeuristicSuggest(request, candidates);
-                return new MealComboSuggestionResult(true, content, heuristic);
+                return new MealComboSuggestionResult(true, content, heuristic, heuristic.Sum(i => i.LineTotal));
             }
 
-            return new MealComboSuggestionResult(true, content, validated);
+            return new MealComboSuggestionResult(true, content, validated, validated.Sum(i => i.LineTotal));
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "MealComboSuggestionService fallback to heuristic");
             var heuristic = HeuristicSuggest(request, candidates);
-            return new MealComboSuggestionResult(false, null, heuristic);
+            return new MealComboSuggestionResult(false, null, heuristic, heuristic.Sum(i => i.LineTotal));
         }
     }
 
-    private sealed record Candidate(Guid ProductId, string Name, string? Unit, string Group, decimal Price, int InStock);
+    private sealed record Candidate(Guid ProductId, string Name, string? Unit, string Group, decimal Price, Guid? CheapestVariantId, int InStock);
 
     private static string BuildSystemPrompt()
     {
@@ -173,7 +174,7 @@ public sealed class MealComboSuggestionService : IMealComboSuggestionService
 
                 var unit = el.TryGetProperty("unit", out var u) ? u.GetString() : null;
                 var group = el.TryGetProperty("group", out var g) ? g.GetString() : null;
-                items.Add(new MealComboSuggestedItem(productId, qty, unit, group));
+                items.Add(new MealComboSuggestedItem(productId, qty, unit, group, null, 0m, 0m));
             }
 
             return true;
@@ -199,7 +200,9 @@ public sealed class MealComboSuggestionService : IMealComboSuggestionService
             if (qty <= 0) continue;
             var unit = string.IsNullOrWhiteSpace(i.Unit) ? c.Unit : i.Unit;
             var group = string.IsNullOrWhiteSpace(i.Group) ? c.Group : i.Group!;
-            cleaned.Add(new MealComboSuggestedItem(i.ProductId, Decimal.Round(qty, 4), unit, group));
+            var roundedQty = Decimal.Round(qty, 4);
+            var lineTotal = Decimal.Round(c.Price * roundedQty, 0);
+            cleaned.Add(new MealComboSuggestedItem(i.ProductId, roundedQty, unit, group, c.CheapestVariantId, c.Price, lineTotal));
         }
 
         // Ensure group coverage (rau_lá, củ, trái_cây)
@@ -212,7 +215,9 @@ public sealed class MealComboSuggestionService : IMealComboSuggestionService
             var pick = candidates.FirstOrDefault(c => string.Equals(c.Group, g, StringComparison.OrdinalIgnoreCase));
             if (pick != null)
             {
-                cleaned.Add(new MealComboSuggestedItem(pick.ProductId, DefaultQuantity(request, pick.Group), pick.Unit, pick.Group));
+                var qty = DefaultQuantity(request, pick.Group);
+                var lineTotal = Decimal.Round(pick.Price * qty, 0);
+                cleaned.Add(new MealComboSuggestedItem(pick.ProductId, qty, pick.Unit, pick.Group, pick.CheapestVariantId, pick.Price, lineTotal));
             }
         }
 
@@ -244,11 +249,12 @@ public sealed class MealComboSuggestionService : IMealComboSuggestionService
             .Take(targetItemCount)
             .ToList();
 
-        return chosen.Select(c => new MealComboSuggestedItem(
-            c.ProductId,
-            DefaultQuantity(request, c.Group),
-            c.Unit,
-            c.Group)).ToList();
+        return chosen.Select(c =>
+        {
+            var qty = DefaultQuantity(request, c.Group);
+            var lineTotal = Decimal.Round(c.Price * qty, 0);
+            return new MealComboSuggestedItem(c.ProductId, qty, c.Unit, c.Group, c.CheapestVariantId, c.Price, lineTotal);
+        }).ToList();
     }
 
     private static decimal DefaultQuantity(MealComboSuggestionRequest request, string group)
@@ -295,6 +301,24 @@ public sealed class MealComboSuggestionService : IMealComboSuggestionService
             return p.DiscountPrice.Value;
 
         return p.BasePrice;
+    }
+
+    private static Guid? GetCheapestInStockVariantId(Product p)
+    {
+        var cheapest = p.ProductVariants
+            .Where(v => !v.IsDeleted && v.StockQuantity > 0)
+            .Select(v => new
+            {
+                v.VariantId,
+                Price = v.DiscountPrice.HasValue && v.DiscountPrice.Value > 0 && v.DiscountPrice.Value < v.Price
+                    ? v.DiscountPrice.Value
+                    : v.Price
+            })
+            .Where(x => x.Price > 0)
+            .OrderBy(x => x.Price)
+            .FirstOrDefault();
+
+        return cheapest?.VariantId;
     }
 
     private static string ExtractAssistantContent(string json)

@@ -10,10 +10,14 @@ public sealed record MealComboSuggestionRequest(int PeopleCount, int Days, strin
 public sealed record MealComboSuggestionResult(
     bool UsedAi,
     string? AiRawJson,
-    IReadOnlyList<MealComboSuggestedItem> Items);
+    IReadOnlyList<MealComboSuggestedItem> Items,
+    decimal TotalPrice);
 
 public sealed record MealComboSuggestedItem(
     Guid ProductId,
     decimal Quantity,
     string? Unit,
-    string? Group);
+    string? Group,
+    Guid? VariantId,
+    decimal UnitPrice,
+    decimal LineTotal);

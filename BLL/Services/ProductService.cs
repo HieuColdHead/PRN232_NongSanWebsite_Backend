@@ -1,7 +1,9 @@
 using BLL.DTOs;
 using BLL.Services.Interfaces;
+using DAL.Data;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,19 +18,22 @@ namespace BLL.Services
         private readonly IGenericRepository<Provider> _providerRepository;
         private readonly IGenericRepository<ProductImage> _productImageRepository;
         private readonly IGenericRepository<ProductVariant> _productVariantRepository;
+        private readonly ApplicationDbContext _context;
 
         public ProductService(
             IGenericRepository<Product> repository,
             IGenericRepository<Category> categoryRepository,
             IGenericRepository<Provider> providerRepository,
             IGenericRepository<ProductImage> productImageRepository,
-            IGenericRepository<ProductVariant> productVariantRepository)
+            IGenericRepository<ProductVariant> productVariantRepository,
+            ApplicationDbContext context)
         {
             _repository = repository;
             _categoryRepository = categoryRepository;
             _providerRepository = providerRepository;
             _productImageRepository = productImageRepository;
             _productVariantRepository = productVariantRepository;
+            _context = context;
         }
 
         public async Task<IEnumerable<ProductDto>> GetAllAsync()
@@ -65,6 +70,118 @@ namespace BLL.Services
             var product = await _repository.GetByIdAsync(id);
             if (product == null) return null;
             return await MapToDto(product);
+        }
+
+        public async Task<IEnumerable<ProductBestSellerDto>> GetBestSellersAsync(int top = 10, int? lastDays = null)
+        {
+            top = Math.Clamp(top, 1, 200);
+            var since = lastDays.HasValue && lastDays.Value > 0
+                ? DateTime.UtcNow.AddDays(-lastDays.Value)
+                : (DateTime?)null;
+
+            var deliveredOrders = _context.Orders
+                .AsNoTracking()
+                .Where(o => !o.IsDeleted && o.Status != null && o.Status.ToLower() == "delivered");
+
+            if (since.HasValue)
+            {
+                deliveredOrders = deliveredOrders.Where(o => o.OrderDate >= since.Value);
+            }
+
+            var deliveredOrderIds = deliveredOrders.Select(o => o.OrderId);
+
+            // 1) Variant lines -> ProductId, SoldQuantity (int -> decimal)
+            var variantLines = await _context.Set<OrderDetail>()
+                .AsNoTracking()
+                .Where(d => deliveredOrderIds.Contains(d.OrderId) && d.VariantId.HasValue)
+                .Join(
+                    _context.Set<ProductVariant>().AsNoTracking(),
+                    d => d.VariantId!.Value,
+                    v => v.VariantId,
+                    (d, v) => new { v.ProductId, Qty = (decimal)d.Quantity })
+                .ToListAsync();
+
+            // 2) Combo lines -> expand MealComboItems
+            var comboLines = await _context.Set<OrderDetail>()
+                .AsNoTracking()
+                .Where(d => deliveredOrderIds.Contains(d.OrderId) && d.MealComboId.HasValue)
+                .Select(d => new { MealComboId = d.MealComboId!.Value, ComboQty = d.Quantity })
+                .ToListAsync();
+
+            var soldByProductId = new Dictionary<Guid, decimal>();
+            foreach (var line in variantLines)
+            {
+                soldByProductId[line.ProductId] = soldByProductId.TryGetValue(line.ProductId, out var current)
+                    ? current + line.Qty
+                    : line.Qty;
+            }
+
+            if (comboLines.Count > 0)
+            {
+                var comboIds = comboLines.Select(x => x.MealComboId).Distinct().ToList();
+                var items = await _context.Set<MealComboItem>()
+                    .AsNoTracking()
+                    .Where(i => comboIds.Contains(i.MealComboId))
+                    .Select(i => new { i.MealComboId, i.ProductId, i.Quantity })
+                    .ToListAsync();
+
+                var itemsByComboId = items
+                    .GroupBy(i => i.MealComboId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                foreach (var comboLine in comboLines)
+                {
+                    if (!itemsByComboId.TryGetValue(comboLine.MealComboId, out var comboItems))
+                        continue;
+
+                    var comboQty = Math.Max(1, comboLine.ComboQty);
+                    foreach (var item in comboItems)
+                    {
+                        var qty = comboQty * item.Quantity;
+                        if (qty <= 0) continue;
+                        soldByProductId[item.ProductId] = soldByProductId.TryGetValue(item.ProductId, out var current)
+                            ? current + qty
+                            : qty;
+                    }
+                }
+            }
+
+            if (soldByProductId.Count == 0)
+            {
+                return Array.Empty<ProductBestSellerDto>();
+            }
+
+            var topIds = soldByProductId
+                .OrderByDescending(kv => kv.Value)
+                .Take(top)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            var products = await _context.Set<Product>()
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted && topIds.Contains(p.ProductId))
+                .Include(p => p.ProductImages)
+                .ToListAsync();
+
+            var productById = products.ToDictionary(p => p.ProductId, p => p);
+
+            return topIds
+                .Where(productById.ContainsKey)
+                .Select(id =>
+                {
+                    var p = productById[id];
+                    var imageUrl = p.ProductImages.FirstOrDefault(img => img.IsPrimary)?.ImageUrl
+                                   ?? p.ProductImages.FirstOrDefault()?.ImageUrl;
+                    return new ProductBestSellerDto
+                    {
+                        ProductId = id,
+                        ProductName = p.ProductName,
+                        Unit = p.Unit,
+                        ImageUrl = imageUrl,
+                        SoldQuantity = soldByProductId[id]
+                    };
+                })
+                .ToList();
         }
 
         public async Task<ProductDto> CreateAsync(CreateProductRequest request)
