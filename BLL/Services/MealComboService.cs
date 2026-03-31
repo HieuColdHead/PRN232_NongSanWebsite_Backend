@@ -99,7 +99,7 @@ public class MealComboService : IMealComboService
         {
             if (!byId.TryGetValue(item.ProductId, out var p)) continue;
 
-            var (_, unitPrice) = GetCheapestInStockVariant(p);
+            var (_, _, unitPrice) = GetCheapestInStockVariant(p);
             if (unitPrice <= 0) continue;
 
             total += unitPrice * item.Quantity;
@@ -119,13 +119,14 @@ public class MealComboService : IMealComboService
         return peopleCount > 0 && days > 0 ? peopleCount * days * 50000m : 0m;
     }
 
-    private static (Guid? VariantId, decimal UnitPrice) GetCheapestInStockVariant(Product p)
+    private static (Guid? VariantId, string? VariantName, decimal UnitPrice) GetCheapestInStockVariant(Product p)
     {
         var cheapest = p.ProductVariants
             .Where(v => !v.IsDeleted && v.StockQuantity > 0)
             .Select(v => new
             {
                 v.VariantId,
+                v.VariantName,
                 UnitPrice = v.DiscountPrice.HasValue && v.DiscountPrice.Value > 0 && v.DiscountPrice.Value < v.Price
                     ? v.DiscountPrice.Value
                     : v.Price
@@ -136,15 +137,15 @@ public class MealComboService : IMealComboService
 
         if (cheapest != null)
         {
-            return (cheapest.VariantId, cheapest.UnitPrice);
+            return (cheapest.VariantId, cheapest.VariantName, cheapest.UnitPrice);
         }
 
         if (p.DiscountPrice.HasValue && p.DiscountPrice.Value > 0 && p.DiscountPrice.Value < p.BasePrice)
         {
-            return (null, p.DiscountPrice.Value);
+            return (null, null, p.DiscountPrice.Value);
         }
 
-        return (null, p.BasePrice);
+        return (null, null, p.BasePrice);
     }
 
     private MealComboDto MapToDto(MealCombo combo)
@@ -161,9 +162,9 @@ public class MealComboService : IMealComboService
             ImageUrl = combo.ImageUrl,
             Items = combo.Items.Select(i =>
             {
-                var (variantId, unitPrice) = i.Product != null
+                var (variantId, variantName, unitPrice) = i.Product != null
                     ? GetCheapestInStockVariant(i.Product)
-                    : (null, 0m);
+                    : (null, null, 0m);
 
                 return new MealComboItemDto
                 {
@@ -173,6 +174,7 @@ public class MealComboService : IMealComboService
                     Unit = i.Unit,
                     Price = unitPrice,
                     VariantId = variantId,
+                    VariantName = variantName,
                     UnitPrice = unitPrice,
                     LineTotal = Decimal.Round(unitPrice * i.Quantity, 0)
                 };
