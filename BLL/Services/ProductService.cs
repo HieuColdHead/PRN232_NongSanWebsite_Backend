@@ -65,6 +65,81 @@ namespace BLL.Services
             };
         }
 
+        public async Task<PagedResult<ProductDto>> GetPagedByCategoryAsync(Guid categoryId, int pageNumber, int pageSize)
+        {
+            var allowedCategoryIds = await CollectCategorySubtreeIdsAsync(categoryId);
+
+            var query = _context.Products
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted && p.CategoryId.HasValue && allowedCategoryIds.Contains(p.CategoryId!.Value))
+                .Include(p => p.ProductImages)
+                .Include(p => p.ProductVariants);
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var dtos = new List<ProductDto>();
+            foreach (var item in items)
+            {
+                dtos.Add(await MapToDto(item));
+            }
+
+            return new PagedResult<ProductDto>
+            {
+                Items = dtos,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+        }
+
+        private async Task<HashSet<Guid>> CollectCategorySubtreeIdsAsync(Guid rootCategoryId)
+        {
+            var rows = await _context.Categories
+                .AsNoTracking()
+                .Where(c => !c.IsDeleted)
+                .Select(c => new { c.CategoryId, c.ParentId })
+                .ToListAsync();
+
+            var validIds = rows.Select(r => r.CategoryId).ToHashSet();
+            if (!validIds.Contains(rootCategoryId))
+            {
+                throw new KeyNotFoundException($"Category {rootCategoryId} not found.");
+            }
+
+            var childrenByParent = rows
+                .Where(r => r.ParentId.HasValue)
+                .GroupBy(r => r.ParentId!.Value)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.CategoryId).ToList());
+
+            var allowed = new HashSet<Guid> { rootCategoryId };
+            var queue = new Queue<Guid>();
+            queue.Enqueue(rootCategoryId);
+
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                if (!childrenByParent.TryGetValue(current, out var children))
+                {
+                    continue;
+                }
+
+                foreach (var childId in children)
+                {
+                    if (allowed.Add(childId))
+                    {
+                        queue.Enqueue(childId);
+                    }
+                }
+            }
+
+            return allowed;
+        }
+
         public async Task<ProductDto?> GetByIdAsync(Guid id)
         {
             var product = await _repository.GetByIdAsync(id);

@@ -23,15 +23,36 @@ public class ProductsController : BaseApiController
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<PagedResult<ProductDto>>>> GetProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<ApiResponse<PagedResult<ProductDto>>>> GetProducts(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] Guid? categoryId = null)
     {
         if (pageNumber < 1 || pageSize < 1)
         {
             return ErrorResponse<PagedResult<ProductDto>>("Page number and page size must be greater than 0.");
         }
 
-        var result = await _service.GetPagedAsync(pageNumber, pageSize);
-        return SuccessResponse(result);
+        if (categoryId.HasValue && categoryId.Value == Guid.Empty)
+        {
+            return ErrorResponse<PagedResult<ProductDto>>("categoryId is invalid.", statusCode: 400);
+        }
+
+        if (categoryId.HasValue)
+        {
+            try
+            {
+                var result = await _service.GetPagedByCategoryAsync(categoryId.Value, pageNumber, pageSize);
+                return SuccessResponse(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return ErrorResponse<PagedResult<ProductDto>>(ex.Message, statusCode: 404);
+            }
+        }
+
+        var allPaged = await _service.GetPagedAsync(pageNumber, pageSize);
+        return SuccessResponse(allPaged);
     }
 
     [HttpGet("{id}")]
