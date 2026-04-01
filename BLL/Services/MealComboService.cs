@@ -164,9 +164,22 @@ public class MealComboService : IMealComboService
             ImageUrl = combo.ImageUrl,
             Items = combo.Items.Select(i =>
             {
-                var (variantId, variantName, unitPrice) = i.Product != null
-                    ? GetCheapestInStockVariant(i.Product)
-                    : (null, null, 0m);
+                Guid? variantId = null;
+                string? variantName = null;
+                decimal unitPrice = 0m;
+
+                // Prefer persisted AI-suggested variant/unit price when available.
+                if (i.SuggestedVariantId.HasValue && i.SuggestedVariantId.Value != Guid.Empty && i.SuggestedUnitPrice > 0)
+                {
+                    variantId = i.SuggestedVariantId;
+                    unitPrice = i.SuggestedUnitPrice;
+                    variantName = i.SuggestedVariant?.VariantName
+                                  ?? i.Product?.ProductVariants.FirstOrDefault(v => v.VariantId == i.SuggestedVariantId)?.VariantName;
+                }
+                else if (i.Product != null)
+                {
+                    (variantId, variantName, unitPrice) = GetCheapestInStockVariant(i.Product);
+                }
 
                 return new MealComboItemDto
                 {

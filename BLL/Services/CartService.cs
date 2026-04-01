@@ -70,6 +70,12 @@ public class CartService : ICartService
                 if (!combo.IsActive)
                     throw new InvalidOperationException("Meal combo is not active");
 
+                if (EnsureComboSuggestedVariants(combo))
+                {
+                    await _mealComboRepository.UpdateAsync(combo);
+                    await _mealComboRepository.SaveChangesAsync();
+                }
+
                 price = combo.BasePrice;
             }
             else
@@ -110,6 +116,47 @@ public class CartService : ICartService
         await _cartRepository.SaveChangesAsync();
 
         return await MapToDto(cart);
+    }
+
+    private static bool EnsureComboSuggestedVariants(MealCombo combo)
+    {
+        if (combo.Items == null || combo.Items.Count == 0)
+            return false;
+
+        var changed = false;
+
+        foreach (var item in combo.Items)
+        {
+            if (item.Product == null)
+                continue;
+
+            var missingVariant = !item.SuggestedVariantId.HasValue || item.SuggestedVariantId.Value == Guid.Empty;
+            var missingPrice = item.SuggestedUnitPrice <= 0;
+            if (!missingVariant && !missingPrice)
+                continue;
+
+            var pick = item.Product.ProductVariants
+                .Where(v => !v.IsDeleted && v.StockQuantity > 0)
+                .Select(v => new
+                {
+                    v.VariantId,
+                    UnitPrice = v.DiscountPrice.HasValue && v.DiscountPrice.Value > 0 && v.DiscountPrice.Value < v.Price
+                        ? v.DiscountPrice.Value
+                        : v.Price
+                })
+                .Where(x => x.UnitPrice > 0)
+                .OrderBy(x => x.UnitPrice)
+                .FirstOrDefault();
+
+            if (pick == null)
+                continue;
+
+            item.SuggestedVariantId = pick.VariantId;
+            item.SuggestedUnitPrice = pick.UnitPrice;
+            changed = true;
+        }
+
+        return changed;
     }
     
     public async Task<CartDto> UpdateItemAsync(Guid userId, UpdateCartItemRequest request)
