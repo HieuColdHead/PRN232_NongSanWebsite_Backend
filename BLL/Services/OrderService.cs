@@ -306,6 +306,8 @@ public class OrderService : IOrderService
                 preDiscountTotal,
                 forUpdate: true);
 
+            await DeductInventoryAsync(selectedItems);
+
             if (voucher != null)
             {
                 ConsumeVoucher(voucher, userId);
@@ -381,6 +383,87 @@ public class OrderService : IOrderService
             Payment = payment,
             Shipment = null
         };
+    }
+
+    private async Task DeductInventoryAsync(List<CartItem> selectedItems)
+    {
+        var requiredByVariantId = new Dictionary<Guid, int>();
+
+        foreach (var item in selectedItems.Where(i => i.VariantId.HasValue))
+        {
+            var variantId = item.VariantId!.Value;
+            var qty = Math.Max(1, item.Quantity);
+            requiredByVariantId[variantId] = requiredByVariantId.TryGetValue(variantId, out var current)
+                ? current + qty
+                : qty;
+        }
+
+        var comboCartItems = selectedItems
+            .Where(i => i.MealComboId.HasValue)
+            .Select(i => new { ComboId = i.MealComboId!.Value, ComboQty = Math.Max(1, i.Quantity) })
+            .ToList();
+
+        if (comboCartItems.Count > 0)
+        {
+            var comboIds = comboCartItems.Select(x => x.ComboId).Distinct().ToList();
+            var comboItems = await _context.MealComboItems
+                .Where(mi => comboIds.Contains(mi.MealComboId) && mi.SuggestedVariantId.HasValue && mi.SuggestedVariantId.Value != Guid.Empty)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var comboQtyById = comboCartItems
+                .GroupBy(x => x.ComboId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.ComboQty));
+
+            foreach (var comboItem in comboItems)
+            {
+                if (!comboQtyById.TryGetValue(comboItem.MealComboId, out var comboQty) || comboQty <= 0)
+                {
+                    continue;
+                }
+
+                var variantId = comboItem.SuggestedVariantId!.Value;
+                var perComboRequired = (int)Math.Ceiling(Math.Max(0, comboItem.Quantity));
+                if (perComboRequired <= 0)
+                {
+                    continue;
+                }
+
+                var totalRequired = perComboRequired * comboQty;
+                requiredByVariantId[variantId] = requiredByVariantId.TryGetValue(variantId, out var current)
+                    ? current + totalRequired
+                    : totalRequired;
+            }
+        }
+
+        if (requiredByVariantId.Count == 0)
+        {
+            return;
+        }
+
+        var variantIds = requiredByVariantId.Keys.ToList();
+        var variants = await _context.ProductVariants
+            .Where(v => variantIds.Contains(v.VariantId) && !v.IsDeleted)
+            .ToListAsync();
+
+        if (variants.Count != variantIds.Count)
+        {
+            throw new InvalidOperationException("Some product variants are no longer available.");
+        }
+
+        foreach (var variant in variants)
+        {
+            var required = requiredByVariantId[variant.VariantId];
+            if (required <= 0) continue;
+
+            if (variant.StockQuantity < required)
+            {
+                throw new InvalidOperationException(
+                    $"Variant '{variant.VariantName}' is out of stock. Available: {variant.StockQuantity}, required: {required}.");
+            }
+
+            variant.StockQuantity -= required;
+        }
     }
 
     public async Task UpdateAsync(Guid id, UpdateOrderRequest request)
