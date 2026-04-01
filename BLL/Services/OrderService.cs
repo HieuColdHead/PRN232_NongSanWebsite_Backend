@@ -812,6 +812,9 @@ public class OrderService : IOrderService
                 .ThenInclude(mc => mc.Items)
                     .ThenInclude(i => i.Product!)
                         .ThenInclude(p => p.ProductImages)
+            .Include(d => d.MealCombo!)
+                .ThenInclude(mc => mc.Items)
+                    .ThenInclude(i => i.SuggestedVariant)
             .ToListAsync();
 
         var shipment = await _context.Shipments
