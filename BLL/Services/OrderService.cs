@@ -217,12 +217,6 @@ public class OrderService : IOrderService
         var (orderDetails, checkoutItems, totalAmount) = BuildOrderDetails(selectedItems);
         _ = orderDetails;
 
-        var (_, discountAmount, appliedVoucherCode) = await ResolveVoucherAsync(
-            userId,
-            request.VoucherCode,
-            totalAmount,
-            forUpdate: false);
-
         var destinationDistrictId = await ResolveDestinationDistrictIdAsync(
             request.ToWardCode!,
             request.ProvinceId);
@@ -235,13 +229,20 @@ public class OrderService : IOrderService
             request.ProvinceId,
             request.InsuranceValue);
 
+        var preDiscountTotal = totalAmount + shippingFee;
+        var (_, discountAmount, appliedVoucherCode) = await ResolveVoucherAsync(
+            userId,
+            request.VoucherCode,
+            preDiscountTotal,
+            forUpdate: false);
+
         return new CheckoutPreviewDto
         {
             Items = checkoutItems,
             TotalAmount = totalAmount,
             ShippingFee = shippingFee,
             DiscountAmount = discountAmount,
-            FinalAmount = Math.Max(0, totalAmount + shippingFee - discountAmount),
+            FinalAmount = Math.Max(0, preDiscountTotal - discountAmount),
             VoucherCode = appliedVoucherCode
         };
     }
@@ -286,17 +287,6 @@ public class OrderService : IOrderService
             var (cart, selectedItems) = await LoadSelectedCartItemsAsync(userId, request.CartItemIds, asNoTracking: false);
             var (orderDetails, _, totalAmount) = BuildOrderDetails(selectedItems);
 
-            var (voucher, discountAmount, _) = await ResolveVoucherAsync(
-                userId,
-                request.VoucherCode,
-                totalAmount,
-                forUpdate: true);
-
-            if (voucher != null)
-            {
-                ConsumeVoucher(voucher, userId);
-            }
-
             var destinationDistrictId = await ResolveDestinationDistrictIdAsync(
                 request.ToWardCode!,
                 request.ProvinceId);
@@ -309,7 +299,19 @@ public class OrderService : IOrderService
                 request.ProvinceId,
                 request.InsuranceValue);
 
-            var finalAmount = Math.Max(0, totalAmount + shippingFee - discountAmount);
+            var preDiscountTotal = totalAmount + shippingFee;
+            var (voucher, discountAmount, _) = await ResolveVoucherAsync(
+                userId,
+                request.VoucherCode,
+                preDiscountTotal,
+                forUpdate: true);
+
+            if (voucher != null)
+            {
+                ConsumeVoucher(voucher, userId);
+            }
+
+            var finalAmount = Math.Max(0, preDiscountTotal - discountAmount);
             order = new Order
             {
                 OrderDate = DateTime.UtcNow,
