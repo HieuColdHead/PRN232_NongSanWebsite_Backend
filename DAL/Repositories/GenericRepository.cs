@@ -40,17 +40,28 @@ namespace DAL.Repositories
                     .Include("Items")
                     .Include("Items.Product")
                     .Include("Items.Product.ProductVariants")
-                    .Include("Items.Product.ProductImages");
+                    .Include("Items.Product.ProductImages")
+                    .Include("Items.SuggestedVariant");
             }
 
             if (typeof(T) == typeof(DAL.Entity.CartItem))
             {
-                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
+                query = query
+                    .Include("ProductVariant.Product.ProductImages")
+                    .Include("MealCombo")
+                    .Include("MealCombo.Items")
+                    .Include("MealCombo.Items.Product.ProductImages")
+                    .Include("MealCombo.Items.SuggestedVariant");
             }
 
             if (typeof(T) == typeof(DAL.Entity.OrderDetail))
             {
-                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
+                query = query
+                    .Include("ProductVariant.Product.ProductImages")
+                    .Include("MealCombo")
+                    .Include("MealCombo.Items")
+                    .Include("MealCombo.Items.Product.ProductImages")
+                    .Include("MealCombo.Items.SuggestedVariant");
             }
 
             var all = await query.ToListAsync();
@@ -118,16 +129,27 @@ namespace DAL.Repositories
                     .Include("Items")
                     .Include("Items.Product")
                     .Include("Items.Product.ProductVariants")
-                    .Include("Items.Product.ProductImages");
+                    .Include("Items.Product.ProductImages")
+                    .Include("Items.SuggestedVariant");
             }
 
             if (typeof(T) == typeof(DAL.Entity.CartItem))
             {
-                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
+                query = query
+                    .Include("ProductVariant.Product.ProductImages")
+                    .Include("MealCombo")
+                    .Include("MealCombo.Items")
+                    .Include("MealCombo.Items.Product.ProductImages")
+                    .Include("MealCombo.Items.SuggestedVariant");
             }
             if (typeof(T) == typeof(DAL.Entity.OrderDetail))
             {
-                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
+                query = query
+                    .Include("ProductVariant.Product.ProductImages")
+                    .Include("MealCombo")
+                    .Include("MealCombo.Items")
+                    .Include("MealCombo.Items.Product.ProductImages")
+                    .Include("MealCombo.Items.SuggestedVariant");
             }
              
             if (id is Guid guidId)
@@ -233,17 +255,28 @@ namespace DAL.Repositories
                     .Include("Items")
                     .Include("Items.Product")
                     .Include("Items.Product.ProductVariants")
-                    .Include("Items.Product.ProductImages");
+                    .Include("Items.Product.ProductImages")
+                    .Include("Items.SuggestedVariant");
             }
 
             if (typeof(T) == typeof(DAL.Entity.CartItem))
             {
-                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
+                query = query
+                    .Include("ProductVariant.Product.ProductImages")
+                    .Include("MealCombo")
+                    .Include("MealCombo.Items")
+                    .Include("MealCombo.Items.Product.ProductImages")
+                    .Include("MealCombo.Items.SuggestedVariant");
             }
 
             if (typeof(T) == typeof(DAL.Entity.OrderDetail))
             {
-                query = query.Include("ProductVariant.Product.ProductImages").Include("MealCombo");
+                query = query
+                    .Include("ProductVariant.Product.ProductImages")
+                    .Include("MealCombo")
+                    .Include("MealCombo.Items")
+                    .Include("MealCombo.Items.Product.ProductImages")
+                    .Include("MealCombo.Items.SuggestedVariant");
             }
 
             var results = await query.Where(predicate).ToListAsync();

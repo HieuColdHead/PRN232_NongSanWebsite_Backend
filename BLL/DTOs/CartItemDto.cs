@@ -12,4 +12,19 @@ public class CartItemDto
     public Guid? MealComboId { get; set; }
     public string? MealComboName { get; set; }
     public string? ImageUrl { get; set; }
+    public List<MealComboCartItemDto>? ComboItems { get; set; }
+}
+
+public class MealComboCartItemDto
+{
+    public Guid ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public Guid? VariantId { get; set; }
+    public string? VariantName { get; set; }
+    public decimal Quantity { get; set; }
+    public string? Unit { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal LineTotal { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? Origin { get; set; }
 }

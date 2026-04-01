@@ -473,6 +473,14 @@ public class PaymentService : IPaymentService
             .Include(o => o.OrderDetails)
                 .ThenInclude(d => d.ProductVariant!)
                     .ThenInclude(v => v.Product)
+            .Include(o => o.OrderDetails)
+                .ThenInclude(d => d.MealCombo!)
+                    .ThenInclude(mc => mc.Items)
+                        .ThenInclude(i => i.Product)
+            .Include(o => o.OrderDetails)
+                .ThenInclude(d => d.MealCombo!)
+                    .ThenInclude(mc => mc.Items)
+                        .ThenInclude(i => i.SuggestedVariant)
             .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
         var email = order?.User?.Email;
@@ -508,13 +516,41 @@ public class PaymentService : IPaymentService
 
         foreach (var detail in order.OrderDetails)
         {
-            var variantName = detail.ProductVariant?.VariantName ?? "Sản phẩm";
-            var productName = detail.ProductVariant?.Product?.ProductName;
-            var displayName = string.IsNullOrWhiteSpace(productName)
-                ? variantName
-                : $"{productName} - {variantName}";
+            if (detail.MealComboId.HasValue || detail.MealCombo != null)
+            {
+                var comboName = detail.MealCombo?.Name ?? "Meal combo";
+                sb.AppendLine($"- {comboName} x{detail.Quantity}: {FormatVnd(detail.SubTotal, culture)}");
 
-            sb.AppendLine($"- {displayName} x{detail.Quantity}: {FormatVnd(detail.SubTotal, culture)}");
+                if (detail.MealCombo?.Items != null)
+                {
+                    foreach (var item in detail.MealCombo.Items)
+                    {
+                        var totalQty = item.Quantity * Math.Max(1, detail.Quantity);
+                        var unitPrice = item.SuggestedUnitPrice;
+                        var lineTotal = Decimal.Round(unitPrice * totalQty, 0);
+
+                        var variantName = item.SuggestedVariant?.VariantName;
+                        var productName = item.Product?.ProductName;
+                        var displayName = string.IsNullOrWhiteSpace(variantName)
+                            ? (productName ?? "Sản phẩm")
+                            : string.IsNullOrWhiteSpace(productName)
+                                ? variantName
+                                : $"{productName} - {variantName}";
+
+                        sb.AppendLine($"  + {displayName} x{totalQty}: {FormatVnd(lineTotal, culture)} (đơn giá {FormatVnd(unitPrice, culture)})");
+                    }
+                }
+
+                continue;
+            }
+
+            var pvVariantName = detail.ProductVariant?.VariantName ?? "Sản phẩm";
+            var pvProductName = detail.ProductVariant?.Product?.ProductName;
+            var pvDisplayName = string.IsNullOrWhiteSpace(pvProductName)
+                ? pvVariantName
+                : $"{pvProductName} - {pvVariantName}";
+
+            sb.AppendLine($"- {pvDisplayName} x{detail.Quantity}: {FormatVnd(detail.SubTotal, culture)}");
         }
 
         sb.AppendLine();

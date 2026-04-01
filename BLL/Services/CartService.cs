@@ -197,7 +197,29 @@ public class CartService : ICartService
                 VariantName = i.ProductVariant?.VariantName,
                 MealComboId = i.MealComboId,
                 MealComboName = i.MealCombo?.Name,
-                ImageUrl = i.MealCombo?.ImageUrl ?? i.ProductVariant?.Product?.ProductImages?.FirstOrDefault()?.ImageUrl
+                ImageUrl = i.MealCombo?.ImageUrl ?? i.ProductVariant?.Product?.ProductImages?.FirstOrDefault()?.ImageUrl,
+                ComboItems = i.MealComboId.HasValue
+                    ? i.MealCombo?.Items.Select(ci =>
+                    {
+                        var unitPrice = ci.SuggestedUnitPrice;
+                        var lineTotal = Decimal.Round(unitPrice * ci.Quantity, 0);
+                        return new MealComboCartItemDto
+                        {
+                            ProductId = ci.ProductId,
+                            ProductName = ci.Product?.ProductName,
+                            VariantId = ci.SuggestedVariantId,
+                            VariantName = ci.SuggestedVariant?.VariantName,
+                            Quantity = ci.Quantity,
+                            Unit = ci.Unit ?? ci.Product?.Unit,
+                            UnitPrice = unitPrice,
+                            LineTotal = lineTotal,
+                            ImageUrl = ci.Product?.ProductImages
+                                ?.FirstOrDefault(img => img.IsPrimary)?.ImageUrl
+                                ?? ci.Product?.ProductImages?.FirstOrDefault()?.ImageUrl,
+                            Origin = ci.Product?.Origin
+                        };
+                    }).ToList()
+                    : null
             }).ToList()
         };
     }

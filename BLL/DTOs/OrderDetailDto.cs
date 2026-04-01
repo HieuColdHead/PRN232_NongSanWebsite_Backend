@@ -25,8 +25,12 @@ public class MealComboOrderItemDto
 {
     public Guid ProductId { get; set; }
     public string? ProductName { get; set; }
+    public Guid? VariantId { get; set; }
+    public string? VariantName { get; set; }
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal LineTotal { get; set; }
     public string? ImageUrl { get; set; }
     public string? Origin { get; set; }
 }

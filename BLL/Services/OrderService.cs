@@ -879,8 +879,12 @@ public class OrderService : IOrderService
                     {
                         ProductId = i.ProductId,
                         ProductName = i.Product?.ProductName,
+                        VariantId = i.SuggestedVariantId,
+                        VariantName = i.SuggestedVariant?.VariantName,
                         Quantity = i.Quantity,
                         Unit = i.Unit ?? i.Product?.Unit,
+                        UnitPrice = i.SuggestedUnitPrice,
+                        LineTotal = Decimal.Round(i.SuggestedUnitPrice * i.Quantity, 0),
                         ImageUrl = i.Product?.ProductImages
                             ?.FirstOrDefault(img => img.IsPrimary)?.ImageUrl
                             ?? i.Product?.ProductImages?.FirstOrDefault()?.ImageUrl,

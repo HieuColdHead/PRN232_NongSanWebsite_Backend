@@ -67,6 +67,8 @@ public class MealComboService : IMealComboService
                 MealComboItemId = Guid.NewGuid(),
                 MealComboId = Guid.Empty, // set after combo id assigned below
                 ProductId = i.ProductId,
+                SuggestedVariantId = i.VariantId,
+                SuggestedUnitPrice = i.UnitPrice,
                 Quantity = i.Packs,
                 Unit = null
             }).ToList()

@@ -23,6 +23,15 @@ public class MealComboItem
     [ForeignKey("ProductId")]
     public Product? Product { get; set; }
 
+    [Column("suggested_variant_id")]
+    public Guid? SuggestedVariantId { get; set; }
+
+    [ForeignKey("SuggestedVariantId")]
+    public ProductVariant? SuggestedVariant { get; set; }
+
+    [Column("suggested_unit_price")]
+    public decimal SuggestedUnitPrice { get; set; }
+
     [Column("quantity")]
     public decimal Quantity { get; set; }
 
