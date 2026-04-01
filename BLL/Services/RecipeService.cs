@@ -28,13 +28,23 @@ public class RecipeService : IRecipeService
 
     public async Task<IEnumerable<RecipeDto>> GetAllAsync()
     {
-        var recipes = await _recipeRepository.GetAllAsync();
+        var recipes = await _context.Recipes
+            .AsNoTracking()
+            .Include(r => r.Ingredients)
+                .ThenInclude(i => i.ProductVariant)
+            .ToListAsync();
+
         return recipes.Select(MapToDto);
     }
 
     public async Task<RecipeDto?> GetByIdAsync(Guid id)
     {
-        var recipe = await _recipeRepository.GetByIdAsync(id);
+        var recipe = await _context.Recipes
+            .AsNoTracking()
+            .Include(r => r.Ingredients)
+                .ThenInclude(i => i.ProductVariant)
+            .FirstOrDefaultAsync(r => r.RecipeId == id);
+
         return recipe != null ? MapToDto(recipe) : null;
     }
 
@@ -63,7 +73,14 @@ public class RecipeService : IRecipeService
 
         await _recipeRepository.AddAsync(recipe);
         await _recipeRepository.SaveChangesAsync();
-        return MapToDto(recipe);
+
+        var created = await _context.Recipes
+            .AsNoTracking()
+            .Include(r => r.Ingredients)
+                .ThenInclude(i => i.ProductVariant)
+            .FirstOrDefaultAsync(r => r.RecipeId == recipe.RecipeId);
+
+        return created != null ? MapToDto(created) : MapToDto(recipe);
     }
 
     public async Task UpdateAsync(Guid id, UpdateRecipeRequest request)
