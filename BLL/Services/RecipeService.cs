@@ -1,7 +1,9 @@
 using BLL.DTOs;
 using BLL.Services.Interfaces;
+using DAL.Data;
 using DAL.Entity;
 using DAL.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace BLL.Services;
 
@@ -10,15 +12,18 @@ public class RecipeService : IRecipeService
     private readonly IGenericRepository<Recipe> _recipeRepository;
     private readonly ICartService _cartService;
     private readonly IProductService _productService;
+    private readonly ApplicationDbContext _context;
 
     public RecipeService(
         IGenericRepository<Recipe> recipeRepository,
         ICartService cartService,
-        IProductService productService)
+        IProductService productService,
+        ApplicationDbContext context)
     {
         _recipeRepository = recipeRepository;
         _cartService = cartService;
         _productService = productService;
+        _context = context;
     }
 
     public async Task<IEnumerable<RecipeDto>> GetAllAsync()
@@ -49,6 +54,7 @@ public class RecipeService : IRecipeService
             {
                 RecipeIngredientId = Guid.NewGuid(),
                 ProductId = i.ProductId,
+                VariantId = i.VariantId,
                 IngredientName = i.IngredientName,
                 Quantity = i.Quantity,
                 Unit = i.Unit
@@ -80,6 +86,7 @@ public class RecipeService : IRecipeService
                 RecipeIngredientId = Guid.NewGuid(),
                 RecipeId = recipe.RecipeId,
                 ProductId = i.ProductId,
+                VariantId = i.VariantId,
                 IngredientName = i.IngredientName,
                 Quantity = i.Quantity,
                 Unit = i.Unit
@@ -105,6 +112,26 @@ public class RecipeService : IRecipeService
 
         foreach (var ingredient in recipe.Ingredients)
         {
+            // If admin selected a specific variant, always use it
+            if (ingredient.VariantId.HasValue && ingredient.VariantId.Value != Guid.Empty)
+            {
+                var quantityToBuy = Math.Max(1, (int)Math.Ceiling(ingredient.Quantity));
+                var variant = await _context.ProductVariants
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(v => v.VariantId == ingredient.VariantId.Value && !v.IsDeleted);
+
+                if (variant != null && variant.StockQuantity >= quantityToBuy)
+                {
+                    itemsToAdd.Add(new AddCartItemRequest
+                    {
+                        VariantId = variant.VariantId,
+                        Quantity = quantityToBuy
+                    });
+                }
+
+                continue;
+            }
+
             if (ingredient.ProductId.HasValue)
             {
                 // Rounding up to the nearest integer unit (e.g., 1 pack)
@@ -152,6 +179,8 @@ public class RecipeService : IRecipeService
             Ingredients = recipe.Ingredients.Select(i => new RecipeIngredientDto
             {
                 ProductId = i.ProductId,
+                VariantId = i.VariantId,
+                VariantName = i.ProductVariant?.VariantName,
                 IngredientName = i.IngredientName,
                 Quantity = i.Quantity,
                 Unit = i.Unit

@@ -22,6 +22,12 @@ public class RecipeIngredient
     [ForeignKey("ProductId")]
     public Product? Product { get; set; }
 
+    [Column("variant_id")]
+    public Guid? VariantId { get; set; }
+
+    [ForeignKey("VariantId")]
+    public ProductVariant? ProductVariant { get; set; }
+
     [Required]
     [Column("ingredient_name")]
     [MaxLength(255)]

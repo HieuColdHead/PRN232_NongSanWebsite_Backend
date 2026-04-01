@@ -3,6 +3,8 @@ using BLL.Services.Interfaces;
 using DAL.Entity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using DAL.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace NongXanhController.Controllers;
 [ApiController]
@@ -11,10 +13,12 @@ namespace NongXanhController.Controllers;
 public class ProductsController : BaseApiController
 {
     private readonly IProductService _service;
+    private readonly ApplicationDbContext _context;
 
-    public ProductsController(IProductService service)
+    public ProductsController(IProductService service, ApplicationDbContext context)
     {
         _service = service;
+        _context = context;
     }
 
     [HttpGet]
@@ -98,5 +102,93 @@ public class ProductsController : BaseApiController
         await _service.DeleteAsync(id);
 
         return SuccessResponse("Product deleted successfully");
+    }
+
+    public sealed class ProductLookupItemDto
+    {
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+    }
+
+    [HttpGet("lookup")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ProductLookupItemDto>>>> LookupProducts(
+        [FromQuery] string? query,
+        [FromQuery] int limit = 20)
+    {
+        limit = Math.Clamp(limit, 1, 100);
+        var q = (query ?? string.Empty).Trim();
+
+        var productsQuery = _context.Products
+            .AsNoTracking()
+            .Where(p => !p.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var qLower = q.ToLower();
+            productsQuery = productsQuery.Where(p => p.ProductName.ToLower().Contains(qLower));
+        }
+
+        var items = await productsQuery
+            .OrderBy(p => p.ProductName)
+            .Take(limit)
+            .Select(p => new ProductLookupItemDto
+            {
+                ProductId = p.ProductId,
+                ProductName = p.ProductName
+            })
+            .ToListAsync();
+
+        return SuccessResponse<IEnumerable<ProductLookupItemDto>>(items);
+    }
+
+    public sealed class ProductVariantLookupDto
+    {
+        public Guid VariantId { get; set; }
+        public string VariantName { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal? DiscountPrice { get; set; }
+        public int StockQuantity { get; set; }
+        public string? Sku { get; set; }
+        public string? Status { get; set; }
+        public Guid ProductId { get; set; }
+    }
+
+    [HttpGet("{productId}/variants")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<IEnumerable<ProductVariantLookupDto>>>> GetProductVariantsByProduct(Guid productId)
+    {
+        if (productId == Guid.Empty)
+        {
+            return ErrorResponse<IEnumerable<ProductVariantLookupDto>>("Invalid productId.", statusCode: 400);
+        }
+
+        var productExists = await _context.Products
+            .AsNoTracking()
+            .AnyAsync(p => p.ProductId == productId && !p.IsDeleted);
+
+        if (!productExists)
+        {
+            return ErrorResponse<IEnumerable<ProductVariantLookupDto>>("Product not found.", statusCode: 404);
+        }
+
+        var variants = await _context.ProductVariants
+            .AsNoTracking()
+            .Where(v => v.ProductId == productId && !v.IsDeleted)
+            .OrderBy(v => v.VariantName)
+            .Select(v => new ProductVariantLookupDto
+            {
+                VariantId = v.VariantId,
+                VariantName = v.VariantName,
+                Price = v.Price,
+                DiscountPrice = v.DiscountPrice,
+                StockQuantity = v.StockQuantity,
+                Sku = v.Sku,
+                Status = v.Status,
+                ProductId = v.ProductId
+            })
+            .ToListAsync();
+
+        return SuccessResponse<IEnumerable<ProductVariantLookupDto>>(variants);
     }
 }

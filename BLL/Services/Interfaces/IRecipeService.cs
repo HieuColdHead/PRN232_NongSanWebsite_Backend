@@ -27,6 +27,8 @@ public class RecipeDto
 public class RecipeIngredientDto
 {
     public Guid? ProductId { get; set; }
+    public Guid? VariantId { get; set; }
+    public string? VariantName { get; set; }
     public string IngredientName { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }
@@ -46,6 +48,7 @@ public class CreateRecipeRequest
 public class RecipeIngredientRequest
 {
     public Guid? ProductId { get; set; }
+    public Guid? VariantId { get; set; }
     public string IngredientName { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }

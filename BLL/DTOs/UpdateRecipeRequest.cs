@@ -25,6 +25,8 @@ public class UpdateRecipeIngredientRequest
 {
     public Guid? ProductId { get; set; }
 
+    public Guid? VariantId { get; set; }
+
     [Required]
     [MaxLength(255)]
     public string IngredientName { get; set; } = string.Empty;
